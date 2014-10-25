@@ -4197,6 +4197,42 @@ describe('$compile', function() {
     });
 
 
+    it("should pass null if required controller can't be found and is optional",function() {
+      module(function() {
+        directive('dep', function(log) {
+          return {
+            require: '?^main',
+            link: function(scope, element, attrs, controller) {
+              log('dep:' + controller);
+            }
+          };
+        });
+      });
+      inject(function(log, $compile, $rootScope) {
+        $compile('<div main><div dep></div></div>')($rootScope);
+        expect(log).toEqual('dep:null');
+      });
+    });
+
+
+    it("should pass null if required controller can't be found and is optional with the question mark on the right",function() {
+      module(function() {
+        directive('dep', function(log) {
+          return {
+            require: '^?main',
+            link: function(scope, element, attrs, controller) {
+              log('dep:' + controller);
+            }
+          };
+        });
+      });
+      inject(function(log, $compile, $rootScope) {
+        $compile('<div main><div dep></div></div>')($rootScope);
+        expect(log).toEqual('dep:null');
+      });
+    });
+
+
     it('should have optional controller on current element', function() {
       module(function() {
         directive('dep', function(log) {
