@@ -200,7 +200,7 @@ var inputType = {
 
    /**
     * @ngdoc input
-    * @name input[dateTimeLocal]
+    * @name input[datetime-local]
     *
     * @description
     * Input with datetime validation and transformation. In browsers that do not yet support
@@ -1576,9 +1576,6 @@ var VALID_CLASS = 'ng-valid',
  * };
  * ```
  *
- * @param {string} name The name of the validator.
- * @param {Function} validationFn The validation function that will be run.
- *
  * @property {Array.<Function>} $viewChangeListeners Array of functions to execute whenever the
  *     view value has changed. It is called with no arguments, and its return value is ignored.
  *     This can be used in place of additional $watches against the model value.
@@ -1592,6 +1589,7 @@ var VALID_CLASS = 'ng-valid',
  * @property {boolean} $dirty True if user has already interacted with the control.
  * @property {boolean} $valid True if there is no error.
  * @property {boolean} $invalid True if at least one error on the control.
+ * @property {string} $name The name attribute of the control.
  *
  * @description
  *
@@ -2292,7 +2290,7 @@ var NgModelController = ['$scope', '$exceptionHandler', '$attrs', '$element', '$
  *    - {@link input[email] email}
  *    - {@link input[url] url}
  *    - {@link input[date] date}
- *    - {@link input[dateTimeLocal] dateTimeLocal}
+ *    - {@link input[datetime-local] datetime-local}
  *    - {@link input[time] time}
  *    - {@link input[month] month}
  *    - {@link input[week] week}
@@ -2772,12 +2770,17 @@ var CONSTANT_VALUE_REGEXP = /^(true|false|\d+)$/;
  * @name ngValue
  *
  * @description
- * Binds the given expression to the value of `input[select]` or `input[radio]`, so
- * that when the element is selected, the `ngModel` of that element is set to the
- * bound value.
+ * Binds the given expression to the value of `<option>` or {@link input[radio] `input[radio]`},
+ * so that when the element is selected, the {@link ngModel `ngModel`} of that element is set to
+ * the bound value.
  *
- * `ngValue` is useful when dynamically generating lists of radio buttons using `ng-repeat`, as
- * shown below.
+ * `ngValue` is useful when dynamically generating lists of radio buttons using
+ * {@link ngRepeat `ngRepeat`}, as shown below.
+ *
+ * Likewise, `ngValue` can be used to generate `<option>` elements for
+ * the {@link select `select`} element. In that case however, only strings are supported
+ * for the `value `attribute, so the resulting `ngModel` will always be a string.
+ * Support for `select` models with non-string values is available via `ngOptions`.
  *
  * @element input
  * @param {string=} ngValue angular expression, whose value will be bound to the `value` attribute

@@ -141,10 +141,14 @@ function $RouteProvider() {
    * Adds a new route definition to the `$route` service.
    */
   this.when = function(path, route) {
+    //copy original route object to preserve params inherited from proto chain
+    var routeCopy = angular.copy(route);
+    if (angular.isUndefined(routeCopy.reloadOnSearch)) {
+      routeCopy.reloadOnSearch = true;
+    }
     routes[path] = angular.extend(
-      {reloadOnSearch: true},
-      route,
-      path && pathRegExp(path, route)
+      routeCopy,
+      path && pathRegExp(path, routeCopy)
     );
 
     // create redirection for trailing slashes
@@ -155,7 +159,7 @@ function $RouteProvider() {
 
       routes[redirectPath] = angular.extend(
         {redirectTo: path},
-        pathRegExp(redirectPath, route)
+        pathRegExp(redirectPath, routeCopy)
       );
     }
 
@@ -437,7 +441,7 @@ function $RouteProvider() {
            * {@link ng.$location $location} hasn't changed.
            *
            * As a result of that, {@link ngRoute.directive:ngView ngView}
-           * creates new scope, reinstantiates the controller.
+           * creates new scope and reinstantiates the controller.
            */
           reload: function() {
             forceReload = true;

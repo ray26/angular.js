@@ -1,3 +1,105 @@
+<a name="1.3.2"></a>
+# 1.3.2 cardiovasculatory-magnification (2014-11-07)
+
+
+## Bug Fixes
+
+- **$compile:** do not rebind parent bound transclude functions
+  ([841c0907](https://github.com/angular/angular.js/commit/841c0907556f525dbc4223609d808319fe0dd7e2),
+   [#9413](https://github.com/angular/angular.js/issues/9413))
+- **$parse:**
+  - stateful interceptors override an `undefined` expression
+  ([ed99821e](https://github.com/angular/angular.js/commit/ed99821e4dc621864f7e2d9a6b5305fca27fb7fa),
+   [#9821](https://github.com/angular/angular.js/issues/9821), [#9825](https://github.com/angular/angular.js/issues/9825))
+  - add quick check for Function constructor in fast path
+  ([e676d642](https://github.com/angular/angular.js/commit/e676d642f5feb8d3ba88944634afb479ba525c36))
+- **$parse, events:** prevent accidental misuse of properties on $event
+  ([e057a9aa](https://github.com/angular/angular.js/commit/e057a9aa398ead209bd6bbf76e22d2d5562904fb))
+- **ngRoute:** allow proto inherited properties in route params object
+  ([b4770582](https://github.com/angular/angular.js/commit/b4770582f84f26c8ff7f2320a36a6b0ceff6e6cc),
+   [#8181](https://github.com/angular/angular.js/issues/8181), [#9731](https://github.com/angular/angular.js/issues/9731))
+- **select:** use strict comparison for isSelected with selectAs
+  ([9e305948](https://github.com/angular/angular.js/commit/9e305948e4965fb86b0c79985dc6e8c59a9c66af),
+   [#9639](https://github.com/angular/angular.js/issues/9639), [#9949](https://github.com/angular/angular.js/issues/9949))
+
+
+## Features
+
+- **ngAria:** announce ngMessages with aria-live
+  ([187e4318](https://github.com/angular/angular.js/commit/187e43185dfb1bce6a318d95958c73cfb789d33c),
+   [#9834](https://github.com/angular/angular.js/issues/9834))
+- **ngMock:** decorator that adds Scope#$countChildScopes and Scope#$countWatchers
+  ([74981c9f](https://github.com/angular/angular.js/commit/74981c9f208b3617cbf00beafd61138d25c5d546),
+   [#9926](https://github.com/angular/angular.js/issues/9926), [#9871](https://github.com/angular/angular.js/issues/9871))
+
+
+##  Security Note
+
+This release also contains security fixes for expression sandbox bypasses.
+
+These issues affect only applications with known server-side XSS holes that are also using [CSP](https://developer.mozilla.org/en-US/docs/Web/Security/CSP) to secure their client-side code. If your application falls into this rare category, we recommend updating your version of Angular.
+
+We'd like to thank security researches [Sebastian Lekies](https://twitter.com/sebastianlekies), [Jann Horn](http://thejh.net/), and [Gábor Molnár](https://twitter.com/molnar_g) for reporting these issues to us.
+
+We also added a documentation page focused on security, which contains some of the best practices, DOs and DON'Ts. Please check out [https://docs.angularjs.org/guide/security](https://docs.angularjs.org/guide/security).
+
+
+
+<a name="1.3.1"></a>
+# 1.3.1 spectral-lobster (2014-10-31)
+
+
+## Bug Fixes
+
+- **$compile:** returning null when an optional controller is not found
+  ([2cd5b4ec](https://github.com/angular/angular.js/commit/2cd5b4ec4409a818ccd33a6fbdeb99a3443a1809),
+   [#9404](https://github.com/angular/angular.js/issues/9404), [#9392](https://github.com/angular/angular.js/issues/9392))
+- **$observe:** check if the attribute is undefined
+  ([531a8de7](https://github.com/angular/angular.js/commit/531a8de72c439d8ddd064874bf364c00cedabb11),
+   [#9707](https://github.com/angular/angular.js/issues/9707), [#9720](https://github.com/angular/angular.js/issues/9720))
+- **$parse:** support dirty-checking objects with null prototype
+  ([28661d1a](https://github.com/angular/angular.js/commit/28661d1a8cc3a8454bad7ae531e027b1256476c9),
+   [#9568](https://github.com/angular/angular.js/issues/9568))
+- **$sce:** use msie instead of $document[0].documentMode
+  ([45252c3a](https://github.com/angular/angular.js/commit/45252c3a545336a0bac93be6ee28cde6afaa3cb4),
+   [#9661](https://github.com/angular/angular.js/issues/9661))
+- **$templateRequest:** ignore JSON Content-Type header and content
+  ([1bd473eb](https://github.com/angular/angular.js/commit/1bd473eb4587900086e0b6b308dcf1dcfe9760d9),
+   [#5756](https://github.com/angular/angular.js/issues/5756), [#9619](https://github.com/angular/angular.js/issues/9619))
+- **i18n:** rename datetimeSymbols to be camelCase
+  ([94f5a285](https://github.com/angular/angular.js/commit/94f5a285bfcf04d800afc462a7a37a3469d77f1a))
+- **loader:** fix double spaces
+  ([8b2f1a47](https://github.com/angular/angular.js/commit/8b2f1a47b584ceb98689f48538a2af73cd65dfd8),
+   [#9630](https://github.com/angular/angular.js/issues/9630))
+- **ngMock:** $httpBackend should match data containing Date objects correctly
+  ([1025f6eb](https://github.com/angular/angular.js/commit/1025f6ebf4e5933a12920889be00cd8ac8a106fa),
+   [#5127](https://github.com/angular/angular.js/issues/5127))
+- **ngSanitize:** attribute name: xmlns:href -> xlink:href
+  ([4cccf0f2](https://github.com/angular/angular.js/commit/4cccf0f2a89b002d63cb443e1e7b15f76dcef425),
+   [#9769](https://github.com/angular/angular.js/issues/9769))
+- **select:** assign result of track exp to element value
+  ([4b4098bf](https://github.com/angular/angular.js/commit/4b4098bfcae64f69c70a22393de1f3d9a0d3dc46),
+   [#9718](https://github.com/angular/angular.js/issues/9718), [#9592](https://github.com/angular/angular.js/issues/9592))
+- **templateRequest:** allow empty html template
+  ([52ceec22](https://github.com/angular/angular.js/commit/52ceec2229dc132b76da4e022c91474344f2d906),
+   [#9581](https://github.com/angular/angular.js/issues/9581))
+- **testability:** escape regex chars in `findBindings` if using `exactMatch`
+  ([02aa4f4b](https://github.com/angular/angular.js/commit/02aa4f4b85ee15922a1f2de8ba78f562c18518d0),
+   [#9595](https://github.com/angular/angular.js/issues/9595), [#9600](https://github.com/angular/angular.js/issues/9600))
+
+
+## Features
+
+- **$compile:** allow $watchCollection to be used in bi-directional bindings
+  ([40bbc981](https://github.com/angular/angular.js/commit/40bbc9817845bf75581daee5d0ec30980affb0f5),
+   [#9725](https://github.com/angular/angular.js/issues/9725))
+- **ngSanitize:** accept SVG elements and attributes
+  ([a54b25d7](https://github.com/angular/angular.js/commit/a54b25d77999a85701dfc5396fef78e586a99667),
+   [#9578](https://github.com/angular/angular.js/issues/9578), [#9751](https://github.com/angular/angular.js/issues/9751))
+
+
+
+
 <a name="1.3.0"></a>
 # 1.3.0 superluminal-nudge (2014-10-13)
 
@@ -1452,6 +1554,8 @@ Closes #8230
 
 - **jQuery:** due to [9e7cb3c3](https://github.com/angular/angular.js/commit/9e7cb3c37543008e6236bb5a2c4536df2e1e43a9),
   Angular no longer supports jQuery versions below 2.1.1.
+- **$q:** due to [23bc92b1](https://github.com/angular/angular.js/commit/23bc92b17df882a907fb326320f0622717fefe7b),
+  Promises methods are no longer enumerated when using for-loops with `hasOwnProperty` check. E.g. `angular.extends`
 
 
 <a name="1.2.22"></a>

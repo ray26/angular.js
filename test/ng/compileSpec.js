@@ -26,6 +26,17 @@ describe('$compile', function() {
     return !!d.toString().match(/SVGForeignObject/);
   }
 
+  function getChildScopes(scope) {
+    var children = [];
+    if (!scope.$$childHead) { return children; }
+    var childScope = scope.$$childHead;
+    do {
+      children.push(childScope);
+      children = children.concat(getChildScopes(childScope));
+    } while ((childScope = childScope.$$nextSibling));
+    return children;
+  }
+
   var element, directive, $compile, $rootScope;
 
   beforeEach(module(provideLog, function($provide, $compileProvider) {
@@ -3356,6 +3367,31 @@ describe('$compile', function() {
         });
       });
 
+      it('should continue with a digets cycle when there is a two-way binding from the child to the parent', function() {
+        module(function() {
+          directive('hello', function() {
+            return {
+              restrict: 'E',
+              scope: { greeting: '=' },
+              template: '<button ng-click="setGreeting()">Say hi!</button>',
+              link: function(scope) {
+                scope.setGreeting = function() { scope.greeting = 'Hello!'; };
+              }
+            };
+          });
+        });
+
+        inject(function($rootScope) {
+          compile('<div>' +
+                    '<p>{{greeting}}</p>' +
+                    '<div><hello greeting="greeting"></hello></div>' +
+                  '</div>');
+          $rootScope.$digest();
+          browserTrigger(element.find('button'), 'click');
+          expect(element.find('p').text()).toBe('Hello!');
+        });
+      });
+
     });
 
 
@@ -5209,25 +5245,102 @@ describe('$compile', function() {
       });
 
 
+      // see issue https://github.com/angular/angular.js/issues/9413
+      describe('passing a parent bound transclude function to the link ' +
+          'function returned from `$compile`', function() {
+
+        beforeEach(module(function() {
+          directive('lazyCompile', function($compile) {
+            return {
+              compile: function(tElement, tAttrs) {
+                var content = tElement.contents();
+                tElement.empty();
+                return function(scope, element, attrs, ctrls, transcludeFn) {
+                  element.append(content);
+                  $compile(content)(scope, undefined, {
+                    parentBoundTranscludeFn: transcludeFn
+                  });
+                };
+              }
+            };
+          });
+          directive('toggle', valueFn({
+            scope: {t: '=toggle'},
+            transclude: true,
+            template: '<div ng-if="t"><lazy-compile><div ng-transclude></div></lazy-compile></div>'
+          }));
+        }));
+
+        it('should preserve the bound scope', function() {
+
+          inject(function($compile, $rootScope) {
+            element = $compile(
+              '<div>' +
+                '<div ng-init="outer=true"></div>' +
+                '<div toggle="t">' +
+                  '<span ng-if="outer">Success</span><span ng-if="!outer">Error</span>' +
+                '</div>' +
+              '</div>')($rootScope);
+
+            $rootScope.$apply('t = false');
+            expect($rootScope.$countChildScopes()).toBe(1);
+            expect(element.text()).toBe('');
+
+            $rootScope.$apply('t = true');
+            expect($rootScope.$countChildScopes()).toBe(4);
+            expect(element.text()).toBe('Success');
+
+            $rootScope.$apply('t = false');
+            expect($rootScope.$countChildScopes()).toBe(1);
+            expect(element.text()).toBe('');
+
+            $rootScope.$apply('t = true');
+            expect($rootScope.$countChildScopes()).toBe(4);
+            expect(element.text()).toBe('Success');
+          });
+        });
+
+
+        it('should preserve the bound scope when using recursive transclusion', function() {
+
+          directive('recursiveTransclude', valueFn({
+            transclude: true,
+            template: '<div><lazy-compile><div ng-transclude></div></lazy-compile></div>'
+          }));
+
+          inject(function($compile, $rootScope) {
+            element = $compile(
+              '<div>' +
+                '<div ng-init="outer=true"></div>' +
+                '<div toggle="t">' +
+                  '<div recursive-transclude>' +
+                    '<span ng-if="outer">Success</span><span ng-if="!outer">Error</span>' +
+                  '</div>' +
+                '</div>' +
+              '</div>')($rootScope);
+
+            $rootScope.$apply('t = false');
+            expect($rootScope.$countChildScopes()).toBe(1);
+            expect(element.text()).toBe('');
+
+            $rootScope.$apply('t = true');
+            expect($rootScope.$countChildScopes()).toBe(4);
+            expect(element.text()).toBe('Success');
+
+            $rootScope.$apply('t = false');
+            expect($rootScope.$countChildScopes()).toBe(1);
+            expect(element.text()).toBe('');
+
+            $rootScope.$apply('t = true');
+            expect($rootScope.$countChildScopes()).toBe(4);
+            expect(element.text()).toBe('Success');
+          });
+        });
+      });
+
+
       // see issue https://github.com/angular/angular.js/issues/9095
       describe('removing a transcluded element', function() {
-
-        function countScopes($rootScope) {
-          return [$rootScope].concat(
-            getChildScopes($rootScope)
-          ).length;
-        }
-
-        function getChildScopes(scope) {
-          var children = [];
-          if (!scope.$$childHead) { return children; }
-          var childScope = scope.$$childHead;
-          do {
-            children.push(childScope);
-            children = children.concat(getChildScopes(childScope));
-          } while ((childScope = childScope.$$nextSibling));
-          return children;
-        }
 
         beforeEach(module(function() {
           directive('toggle', function() {
@@ -5251,22 +5364,22 @@ describe('$compile', function() {
           $rootScope.$apply('t = true');
           expect(element.text()).toContain('msg-1');
           // Expected scopes: $rootScope, ngIf, transclusion, ngRepeat
-          expect(countScopes($rootScope)).toEqual(4);
+          expect($rootScope.$countChildScopes()).toBe(3);
 
           $rootScope.$apply('t = false');
           expect(element.text()).not.toContain('msg-1');
           // Expected scopes: $rootScope
-          expect(countScopes($rootScope)).toEqual(1);
+          expect($rootScope.$countChildScopes()).toBe(0);
 
           $rootScope.$apply('t = true');
           expect(element.text()).toContain('msg-1');
           // Expected scopes: $rootScope, ngIf, transclusion, ngRepeat
-          expect(countScopes($rootScope)).toEqual(4);
+          expect($rootScope.$countChildScopes()).toBe(3);
 
           $rootScope.$apply('t = false');
           expect(element.text()).not.toContain('msg-1');
           // Expected scopes: $rootScope
-          expect(countScopes($rootScope)).toEqual(1);
+          expect($rootScope.$countChildScopes()).toBe(0);
         }));
 
 
@@ -5283,22 +5396,22 @@ describe('$compile', function() {
           $rootScope.$apply('t = true');
           expect(element.text()).toContain('msg-1msg-1');
           // Expected scopes: $rootScope, ngIf, transclusion, ngRepeat
-          expect(countScopes($rootScope)).toEqual(4);
+          expect($rootScope.$countChildScopes()).toBe(3);
 
           $rootScope.$apply('t = false');
           expect(element.text()).not.toContain('msg-1msg-1');
           // Expected scopes: $rootScope
-          expect(countScopes($rootScope)).toEqual(1);
+          expect($rootScope.$countChildScopes()).toBe(0);
 
           $rootScope.$apply('t = true');
           expect(element.text()).toContain('msg-1msg-1');
           // Expected scopes: $rootScope, ngIf, transclusion, ngRepeat
-          expect(countScopes($rootScope)).toEqual(4);
+          expect($rootScope.$countChildScopes()).toBe(3);
 
           $rootScope.$apply('t = false');
           expect(element.text()).not.toContain('msg-1msg-1');
           // Expected scopes: $rootScope
-          expect(countScopes($rootScope)).toEqual(1);
+          expect($rootScope.$countChildScopes()).toBe(0);
         }));
 
 
@@ -5314,22 +5427,22 @@ describe('$compile', function() {
           $rootScope.$apply('t = true');
           expect(element.html()).toContain('some comment');
           // Expected scopes: $rootScope, ngIf, transclusion
-          expect(countScopes($rootScope)).toEqual(3);
+          expect($rootScope.$countChildScopes()).toBe(2);
 
           $rootScope.$apply('t = false');
           expect(element.html()).not.toContain('some comment');
           // Expected scopes: $rootScope
-          expect(countScopes($rootScope)).toEqual(1);
+          expect($rootScope.$countChildScopes()).toBe(0);
 
           $rootScope.$apply('t = true');
           expect(element.html()).toContain('some comment');
           // Expected scopes: $rootScope, ngIf, transclusion
-          expect(countScopes($rootScope)).toEqual(3);
+          expect($rootScope.$countChildScopes()).toBe(2);
 
           $rootScope.$apply('t = false');
           expect(element.html()).not.toContain('some comment');
           // Expected scopes: $rootScope
-          expect(countScopes($rootScope)).toEqual(1);
+          expect($rootScope.$countChildScopes()).toBe(0);
         }));
 
         it('should not leak the transclude scope if the transcluded contains only text nodes',
@@ -5344,22 +5457,22 @@ describe('$compile', function() {
           $rootScope.$apply('t = true');
           expect(element.html()).toContain('some text');
           // Expected scopes: $rootScope, ngIf, transclusion
-          expect(countScopes($rootScope)).toEqual(3);
+          expect($rootScope.$countChildScopes()).toBe(2);
 
           $rootScope.$apply('t = false');
           expect(element.html()).not.toContain('some text');
           // Expected scopes: $rootScope
-          expect(countScopes($rootScope)).toEqual(1);
+          expect($rootScope.$countChildScopes()).toBe(0);
 
           $rootScope.$apply('t = true');
           expect(element.html()).toContain('some text');
           // Expected scopes: $rootScope, ngIf, transclusion
-          expect(countScopes($rootScope)).toEqual(3);
+          expect($rootScope.$countChildScopes()).toBe(2);
 
           $rootScope.$apply('t = false');
           expect(element.html()).not.toContain('some text');
           // Expected scopes: $rootScope
-          expect(countScopes($rootScope)).toEqual(1);
+          expect($rootScope.$countChildScopes()).toBe(0);
         }));
 
         it('should mark as destroyed all sub scopes of the scope being destroyed',

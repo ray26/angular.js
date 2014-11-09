@@ -3,9 +3,11 @@
 describe('parser', function() {
 
   beforeEach(function() {
-    /* global getterFnCache: true */
-    // clear cache
-    getterFnCache = createMap();
+    /* global getterFnCacheDefault: true */
+    /* global getterFnCacheExpensive: true */
+    // clear caches
+    getterFnCacheDefault = createMap();
+    getterFnCacheExpensive = createMap();
   });
 
 
@@ -672,6 +674,24 @@ describe('parser', function() {
 
       describe('sandboxing', function() {
         describe('Function constructor', function() {
+          it('should not tranverse the Function constructor in the getter', function() {
+            expect(function() {
+              scope.$eval('{}.toString.constructor');
+            }).toThrowMinErr(
+                    '$parse', 'isecfn', 'Referencing Function in Angular expressions is disallowed! ' +
+                    'Expression: {}.toString.constructor');
+
+          });
+
+          it('should not allow access to the Function prototype in the getter', function() {
+            expect(function() {
+              scope.$eval('toString.constructor.prototype');
+            }).toThrowMinErr(
+                    '$parse', 'isecfn', 'Referencing Function in Angular expressions is disallowed! ' +
+                    'Expression: toString.constructor.prototype');
+
+          });
+
           it('should NOT allow access to Function constructor in getter', function() {
 
             expect(function() {
@@ -764,6 +784,22 @@ describe('parser', function() {
                     '$parse', 'isecfn', 'Referencing Function in Angular expressions is disallowed! ' +
                     'Expression: foo["bar"]');
 
+          });
+
+          describe('expensiveChecks', function() {
+            it('should block access to window object even when aliased', inject(function($parse, $window) {
+              scope.foo = {w: $window};
+              // This isn't blocked for performance.
+              expect(scope.$eval($parse('foo.w'))).toBe($window);
+              // Event handlers use the more expensive path for better protection since they expose
+              // the $event object on the scope.
+              expect(function() {
+                scope.$eval($parse('foo.w', null, true));
+              }).toThrowMinErr(
+                      '$parse', 'isecwindow', 'Referencing the Window in Angular expressions is disallowed! ' +
+                      'Expression: foo.w');
+
+            }));
           });
         });
 
@@ -1600,10 +1636,10 @@ describe('parser', function() {
         }));
 
         it('should not use locals to resolve object properties', inject(function($parse) {
-          expect($parse('a[0].b')({a: [ {b: 'scope'} ]}, {b: 'locals'})).toBe('scope');
-          expect($parse('a[0]["b"]')({a: [ {b: 'scope'} ]}, {b: 'locals'})).toBe('scope');
+          expect($parse('a[0].b')({a: [{b: 'scope'}]}, {b: 'locals'})).toBe('scope');
+          expect($parse('a[0]["b"]')({a: [{b: 'scope'}]}, {b: 'locals'})).toBe('scope');
           expect($parse('a[0][0].b')({a: [[{b: 'scope'}]]}, {b: 'locals'})).toBe('scope');
-          expect($parse('a[0].b.c')({a: [ {b: {c: 'scope'}}] }, {b: {c: 'locals'} })).toBe('scope');
+          expect($parse('a[0].b.c')({a: [{b: {c: 'scope'}}] }, {b: {c: 'locals'} })).toBe('scope');
         }));
       });
 
