@@ -6,7 +6,7 @@ describe('ngMock', function() {
   describe('TzDate', function() {
 
     function minutes(min) {
-      return min*60*1000;
+      return min * 60 * 1000;
     }
 
     it('should look like a Date', function() {
@@ -321,11 +321,15 @@ describe('ngMock', function() {
         inject(function($interval, $rootScope) {
       var applySpy = spyOn($rootScope, '$apply').andCallThrough();
 
-      $interval(noop, 1000, 0, false);
+      var counter = 0;
+      $interval(function increment() { counter++; }, 1000, 0, false);
+
       expect(applySpy).not.toHaveBeenCalled();
+      expect(counter).toBe(0);
 
       $interval.flush(2000);
       expect(applySpy).not.toHaveBeenCalled();
+      expect(counter).toBe(2);
     }));
 
 
@@ -533,7 +537,7 @@ describe('ngMock', function() {
 
     function logFn(text) {
       return function() {
-        log += text +';';
+        log += text + ';';
       };
     }
 

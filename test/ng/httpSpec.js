@@ -816,6 +816,17 @@ describe('$http', function() {
       });
 
 
+      it('should handle empty response header', function() {
+       $httpBackend.expect('GET', '/url', undefined)
+           .respond(200, '', { 'Custom-Empty-Response-Header': '', 'Constructor': '' });
+       $http.get('/url').success(callback);
+       $httpBackend.flush();
+       expect(callback).toHaveBeenCalledOnce();
+       expect(callback.mostRecentCall.args[2]('custom-empty-response-Header')).toBe('');
+       expect(callback.mostRecentCall.args[2]('ToString')).toBe(null);
+       expect(callback.mostRecentCall.args[2]('Constructor')).toBe('');
+     });
+
       it('should have delete()', function() {
         $httpBackend.expect('DELETE', '/url').respond('');
         $http['delete']('/url');
@@ -1131,6 +1142,17 @@ describe('$http', function() {
 
             expect(callback).toHaveBeenCalledOnce();
             expect(callback.mostRecentCall.args[0]).toEqual('');
+          });
+
+          it('should not attempt to deserialize json for a blank response whose header contains application/json', function() {
+            //per http spec for Content-Type, HEAD request should return a Content-Type header
+            //set to what the content type would have been if a get was sent
+            $httpBackend.expect('GET', '/url').respond(' ', {'Content-Type': 'application/json'});
+            $http({method: 'GET', url: '/url'}).success(callback);
+            $httpBackend.flush();
+
+            expect(callback).toHaveBeenCalledOnce();
+            expect(callback.mostRecentCall.args[0]).toEqual(' ');
           });
 
           it('should not deserialize tpl beginning with ng expression', function() {

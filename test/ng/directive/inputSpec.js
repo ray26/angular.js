@@ -139,6 +139,23 @@ describe('NgModelController', function() {
     });
   });
 
+  describe('setDirty', function() {
+
+    it('should set control to its dirty state', function() {
+      expect(ctrl.$pristine).toBe(true);
+      expect(ctrl.$dirty).toBe(false);
+
+      ctrl.$setDirty();
+      expect(ctrl.$pristine).toBe(false);
+      expect(ctrl.$dirty).toBe(true);
+    });
+
+    it('should set parent form to its dirty state', function() {
+      ctrl.$setDirty();
+      expect(parentFormCtrl.$setDirty).toHaveBeenCalled();
+    });
+  });
+
   describe('setUntouched', function() {
 
     it('should set control to its untouched state', function() {
@@ -484,72 +501,190 @@ describe('NgModelController', function() {
 
   });
 
-  describe('validations pipeline', function() {
+  describe('validation', function() {
 
-    it('should perform validations when $validate() is called', function() {
-      scope.$apply('value = ""');
+    describe('$validate', function() {
+      it('should perform validations when $validate() is called', function() {
+        scope.$apply('value = ""');
 
-      var validatorResult = false;
-      ctrl.$validators.someValidator = function(value) {
-        return validatorResult;
-      };
+        var validatorResult = false;
+        ctrl.$validators.someValidator = function(value) {
+          return validatorResult;
+        };
 
-      ctrl.$validate();
+        ctrl.$validate();
 
-      expect(ctrl.$valid).toBe(false);
+        expect(ctrl.$valid).toBe(false);
 
-      validatorResult = true;
-      ctrl.$validate();
+        validatorResult = true;
+        ctrl.$validate();
 
-      expect(ctrl.$valid).toBe(true);
-    });
-
-    it('should always perform validations using the parsed model value', function() {
-      var captures;
-      ctrl.$validators.raw = function() {
-        captures = arguments;
-        return captures[0];
-      };
-
-      ctrl.$parsers.push(function(value) {
-        return value.toUpperCase();
+        expect(ctrl.$valid).toBe(true);
       });
 
-      ctrl.$setViewValue('my-value');
+      it('should pass the last parsed modelValue to the validators', function() {
+        ctrl.$parsers.push(function(modelValue) {
+          return modelValue + 'def';
+        });
 
-      expect(captures).toEqual(['MY-VALUE', 'my-value']);
-    });
+        ctrl.$setViewValue('abc');
 
-    it('should always perform validations using the formatted view value', function() {
-      var captures;
-      ctrl.$validators.raw = function() {
-        captures = arguments;
-        return captures[0];
-      };
+        ctrl.$validators.test = function(modelValue, viewValue) {
+          return true;
+        };
 
-      ctrl.$formatters.push(function(value) {
-        return value + '...';
+        spyOn(ctrl.$validators, 'test');
+
+        ctrl.$validate();
+
+        expect(ctrl.$validators.test).toHaveBeenCalledWith('abcdef', 'abc');
       });
 
-      scope.$apply('value = "matias"');
+      it('should set the model to undefined when it becomes invalid', function() {
+        var valid = true;
+        ctrl.$validators.test = function(modelValue, viewValue) {
+          return valid;
+        };
 
-      expect(captures).toEqual(['matias', 'matias...']);
+        scope.$apply('value = "abc"');
+        expect(scope.value).toBe('abc');
+
+        valid = false;
+        ctrl.$validate();
+
+        expect(scope.value).toBeUndefined();
+      });
+
+      it('should update the model when it becomes valid', function() {
+        var valid = true;
+        ctrl.$validators.test = function(modelValue, viewValue) {
+          return valid;
+        };
+
+        scope.$apply('value = "abc"');
+        expect(scope.value).toBe('abc');
+
+        valid = false;
+        ctrl.$validate();
+        expect(scope.value).toBeUndefined();
+
+        valid = true;
+        ctrl.$validate();
+        expect(scope.value).toBe('abc');
+      });
+
+      it('should not update the model when it is valid, but there is a parse error', function() {
+        ctrl.$parsers.push(function(modelValue) {
+          return undefined;
+        });
+
+        ctrl.$setViewValue('abc');
+        expect(ctrl.$error.parse).toBe(true);
+        expect(scope.value).toBeUndefined();
+
+        ctrl.$validators.test = function(modelValue, viewValue) {
+          return true;
+        };
+
+        ctrl.$validate();
+        expect(ctrl.$error).toEqual({parse: true});
+        expect(scope.value).toBeUndefined();
+      });
+
+      it('should not set an invalid model to undefined when validity is the same', function() {
+        ctrl.$validators.test = function() {
+          return false;
+        };
+
+        scope.$apply('value = "invalid"');
+        expect(ctrl.$valid).toBe(false);
+        expect(scope.value).toBe('invalid');
+
+        ctrl.$validate();
+        expect(ctrl.$valid).toBe(false);
+        expect(scope.value).toBe('invalid');
+      });
+
+      it('should not change a model that has a formatter', function() {
+        ctrl.$validators.test = function() {
+          return true;
+        };
+
+        ctrl.$formatters.push(function(modelValue) {
+          return 'xyz';
+        });
+
+        scope.$apply('value = "abc"');
+        expect(ctrl.$viewValue).toBe('xyz');
+
+        ctrl.$validate();
+        expect(scope.value).toBe('abc');
+      });
+
+      it('should not change a model that has a parser', function() {
+        ctrl.$validators.test = function() {
+          return true;
+        };
+
+        ctrl.$parsers.push(function(modelValue) {
+          return 'xyz';
+        });
+
+        scope.$apply('value = "abc"');
+
+        ctrl.$validate();
+        expect(scope.value).toBe('abc');
+      });
     });
 
-    it('should only perform validations if the view value is different', function() {
-      var count = 0;
-      ctrl.$validators.countMe = function() {
-        count++;
-      };
+    describe('view -> model update', function() {
+      it('should always perform validations using the parsed model value', function() {
+        var captures;
+        ctrl.$validators.raw = function() {
+          captures = arguments;
+          return captures[0];
+        };
 
-      ctrl.$setViewValue('my-value');
-      expect(count).toBe(1);
+        ctrl.$parsers.push(function(value) {
+          return value.toUpperCase();
+        });
 
-      ctrl.$setViewValue('my-value');
-      expect(count).toBe(1);
+        ctrl.$setViewValue('my-value');
 
-      ctrl.$setViewValue('your-value');
-      expect(count).toBe(2);
+        expect(captures).toEqual(['MY-VALUE', 'my-value']);
+      });
+
+      it('should always perform validations using the formatted view value', function() {
+        var captures;
+        ctrl.$validators.raw = function() {
+          captures = arguments;
+          return captures[0];
+        };
+
+        ctrl.$formatters.push(function(value) {
+          return value + '...';
+        });
+
+        scope.$apply('value = "matias"');
+
+        expect(captures).toEqual(['matias', 'matias...']);
+      });
+
+      it('should only perform validations if the view value is different', function() {
+        var count = 0;
+        ctrl.$validators.countMe = function() {
+          count++;
+        };
+
+        ctrl.$setViewValue('my-value');
+        expect(count).toBe(1);
+
+        ctrl.$setViewValue('my-value');
+        expect(count).toBe(1);
+
+        ctrl.$setViewValue('your-value');
+        expect(count).toBe(2);
+      });
     });
 
     it('should perform validations twice each time the model value changes within a digest', function() {
@@ -934,6 +1069,7 @@ describe('NgModelController', function() {
   });
 });
 
+
 describe('ngModel', function() {
   var EMAIL_REGEXP = /^[a-z0-9!#$%&'*+\/=?^_`{|}~.-]+@[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/i;
 
@@ -1010,7 +1146,7 @@ describe('ngModel', function() {
     function createInput(type) {
       inject(function($compile, $rootScope) {
         scope = $rootScope;
-        inputElm = $compile('<input type="'+type+'" ng-model="val" custom-format/>')($rootScope);
+        inputElm = $compile('<input type="' + type + '" ng-model="val" custom-format/>')($rootScope);
       });
     }
 
@@ -1143,6 +1279,32 @@ describe('ngModel', function() {
 
     dealoc(element);
   }));
+
+  it('should digest asynchronously on "blur" event if a apply is already in progress',
+      inject(function($compile, $rootScope) {
+
+    var element = $compile('<form name="myForm">' +
+                             '<input name="myControl" ng-model="value" >' +
+                           '</form>')($rootScope);
+    var inputElm = element.find('input');
+    var control = $rootScope.myForm.myControl;
+
+    $rootScope.$apply(function() {
+      expect(control.$touched).toBe(false);
+      expect(control.$untouched).toBe(true);
+
+      browserTrigger(inputElm, 'blur');
+
+      expect(control.$touched).toBe(false);
+      expect(control.$untouched).toBe(true);
+    });
+
+    expect(control.$touched).toBe(true);
+    expect(control.$untouched).toBe(false);
+
+    dealoc(element);
+  }));
+
 
   it('should register/deregister a nested ngModel with parent form when entering or leaving DOM',
       inject(function($compile, $rootScope) {
@@ -1348,7 +1510,6 @@ describe('input', function() {
     expect(scope.form.$$renameControl).not.toHaveBeenCalled();
   });
 
-
   describe('compositionevents', function() {
     it('should not update the model between "compositionstart" and "compositionend" on non android', inject(function($sniffer) {
       $sniffer.android = false;
@@ -1544,8 +1705,8 @@ describe('input', function() {
 
     it('should allow overriding the model update trigger event on text inputs', function() {
       compileInput(
-          '<input type="text" ng-model="name" name="alias" '+
-            'ng-model-options="{ updateOn: \'blur\' }"'+
+          '<input type="text" ng-model="name" name="alias" ' +
+            'ng-model-options="{ updateOn: \'blur\' }"' +
           '/>');
 
       changeInputValueTo('a');
@@ -1556,8 +1717,8 @@ describe('input', function() {
 
     it('should not dirty the input if nothing was changed before updateOn trigger', function() {
       compileInput(
-          '<input type="text" ng-model="name" name="alias" '+
-            'ng-model-options="{ updateOn: \'blur\' }"'+
+          '<input type="text" ng-model="name" name="alias" ' +
+            'ng-model-options="{ updateOn: \'blur\' }"' +
           '/>');
 
       browserTrigger(inputElm, 'blur');
@@ -1566,8 +1727,8 @@ describe('input', function() {
 
     it('should allow overriding the model update trigger event on text areas', function() {
       compileInput(
-          '<textarea ng-model="name" name="alias" '+
-            'ng-model-options="{ updateOn: \'blur\' }"'+
+          '<textarea ng-model="name" name="alias" ' +
+            'ng-model-options="{ updateOn: \'blur\' }"' +
           '/>');
 
       changeInputValueTo('a');
@@ -1578,8 +1739,8 @@ describe('input', function() {
 
     it('should bind the element to a list of events', function() {
       compileInput(
-          '<input type="text" ng-model="name" name="alias" '+
-            'ng-model-options="{ updateOn: \'blur mousemove\' }"'+
+          '<input type="text" ng-model="name" name="alias" ' +
+            'ng-model-options="{ updateOn: \'blur mousemove\' }"' +
           '/>');
 
       changeInputValueTo('a');
@@ -1596,8 +1757,8 @@ describe('input', function() {
 
     it('should allow keeping the default update behavior on text inputs', function() {
       compileInput(
-          '<input type="text" ng-model="name" name="alias" '+
-            'ng-model-options="{ updateOn: \'default\' }"'+
+          '<input type="text" ng-model="name" name="alias" ' +
+            'ng-model-options="{ updateOn: \'default\' }"' +
           '/>');
 
       changeInputValueTo('a');
@@ -1607,8 +1768,8 @@ describe('input', function() {
 
     it('should allow overriding the model update trigger event on checkboxes', function() {
       compileInput(
-          '<input type="checkbox" ng-model="checkbox" '+
-            'ng-model-options="{ updateOn: \'blur\' }"'+
+          '<input type="checkbox" ng-model="checkbox" ' +
+            'ng-model-options="{ updateOn: \'blur\' }"' +
           '/>');
 
       browserTrigger(inputElm, 'click');
@@ -1624,8 +1785,8 @@ describe('input', function() {
 
     it('should allow keeping the default update behavior on checkboxes', function() {
       compileInput(
-          '<input type="checkbox" ng-model="checkbox" '+
-            'ng-model-options="{ updateOn: \'blur default\' }"'+
+          '<input type="checkbox" ng-model="checkbox" ' +
+            'ng-model-options="{ updateOn: \'blur default\' }"' +
           '/>');
 
       browserTrigger(inputElm, 'click');
@@ -1638,14 +1799,14 @@ describe('input', function() {
 
     it('should allow overriding the model update trigger event on radio buttons', function() {
       compileInput(
-          '<input type="radio" ng-model="color" value="white" '+
-            'ng-model-options="{ updateOn: \'blur\'}"'+
+          '<input type="radio" ng-model="color" value="white" ' +
+            'ng-model-options="{ updateOn: \'blur\'}"' +
           '/>' +
-          '<input type="radio" ng-model="color" value="red" '+
-            'ng-model-options="{ updateOn: \'blur\'}"'+
+          '<input type="radio" ng-model="color" value="red" ' +
+            'ng-model-options="{ updateOn: \'blur\'}"' +
           '/>' +
-          '<input type="radio" ng-model="color" value="blue" '+
-            'ng-model-options="{ updateOn: \'blur\'}"'+
+          '<input type="radio" ng-model="color" value="blue" ' +
+            'ng-model-options="{ updateOn: \'blur\'}"' +
           '/>');
 
       scope.$apply("color = 'white'");
@@ -1660,14 +1821,14 @@ describe('input', function() {
 
     it('should allow keeping the default update behavior on radio buttons', function() {
       compileInput(
-          '<input type="radio" ng-model="color" value="white" '+
-            'ng-model-options="{ updateOn: \'blur default\' }"'+
+          '<input type="radio" ng-model="color" value="white" ' +
+            'ng-model-options="{ updateOn: \'blur default\' }"' +
           '/>' +
-          '<input type="radio" ng-model="color" value="red" '+
-            'ng-model-options="{ updateOn: \'blur default\' }"'+
+          '<input type="radio" ng-model="color" value="red" ' +
+            'ng-model-options="{ updateOn: \'blur default\' }"' +
           '/>' +
-          '<input type="radio" ng-model="color" value="blue" '+
-            'ng-model-options="{ updateOn: \'blur default\' }"'+
+          '<input type="radio" ng-model="color" value="blue" ' +
+            'ng-model-options="{ updateOn: \'blur default\' }"' +
           '/>');
 
       scope.$apply("color = 'white'");
@@ -1678,8 +1839,8 @@ describe('input', function() {
 
     it('should trigger only after timeout in text inputs', inject(function($timeout) {
       compileInput(
-          '<input type="text" ng-model="name" name="alias" '+
-            'ng-model-options="{ debounce: 10000 }"'+
+          '<input type="text" ng-model="name" name="alias" ' +
+            'ng-model-options="{ debounce: 10000 }"' +
           '/>');
 
       changeInputValueTo('a');
@@ -1695,8 +1856,8 @@ describe('input', function() {
 
     it('should trigger only after timeout in checkboxes', inject(function($timeout) {
       compileInput(
-          '<input type="checkbox" ng-model="checkbox" '+
-            'ng-model-options="{ debounce: 10000 }"'+
+          '<input type="checkbox" ng-model="checkbox" ' +
+            'ng-model-options="{ debounce: 10000 }"' +
           '/>');
 
       browserTrigger(inputElm, 'click');
@@ -1711,11 +1872,11 @@ describe('input', function() {
     it('should trigger only after timeout in radio buttons', inject(function($timeout) {
       compileInput(
           '<input type="radio" ng-model="color" value="white" />' +
-          '<input type="radio" ng-model="color" value="red" '+
-            'ng-model-options="{ debounce: 20000 }"'+
+          '<input type="radio" ng-model="color" value="red" ' +
+            'ng-model-options="{ debounce: 20000 }"' +
           '/>' +
-          '<input type="radio" ng-model="color" value="blue" '+
-            'ng-model-options="{ debounce: 30000 }"'+
+          '<input type="radio" ng-model="color" value="blue" ' +
+            'ng-model-options="{ debounce: 30000 }"' +
           '/>');
 
       browserTrigger(inputElm[0], 'click');
@@ -1731,8 +1892,8 @@ describe('input', function() {
 
     it('should not trigger digest while debouncing', inject(function($timeout) {
       compileInput(
-          '<input type="text" ng-model="name" name="alias" '+
-            'ng-model-options="{ debounce: 10000 }"'+
+          '<input type="text" ng-model="name" name="alias" ' +
+            'ng-model-options="{ debounce: 10000 }"' +
           '/>');
 
       var watchSpy = jasmine.createSpy('watchSpy');
@@ -1748,11 +1909,11 @@ describe('input', function() {
     it('should allow selecting different debounce timeouts for each event',
       inject(function($timeout) {
       compileInput(
-          '<input type="text" ng-model="name" name="alias" '+
-            'ng-model-options="{'+
-              'updateOn: \'default blur\', '+
-              'debounce: { default: 10000, blur: 5000 }'+
-            '}"'+
+          '<input type="text" ng-model="name" name="alias" ' +
+            'ng-model-options="{' +
+              'updateOn: \'default blur\', ' +
+              'debounce: { default: 10000, blur: 5000 }' +
+            '}"' +
           '/>');
 
       changeInputValueTo('a');
@@ -1771,9 +1932,9 @@ describe('input', function() {
 
 
     it('should allow selecting different debounce timeouts for each event on checkboxes', inject(function($timeout) {
-      compileInput('<input type="checkbox" ng-model="checkbox" '+
-        'ng-model-options="{ '+
-          'updateOn: \'default blur\', debounce: { default: 10000, blur: 5000 } }"'+
+      compileInput('<input type="checkbox" ng-model="checkbox" ' +
+        'ng-model-options="{ ' +
+          'updateOn: \'default blur\', debounce: { default: 10000, blur: 5000 } }"' +
         '/>');
 
       inputElm[0].checked = false;
@@ -1793,9 +1954,9 @@ describe('input', function() {
     }));
 
     it('should allow selecting 0 for non-default debounce timeouts for each event on checkboxes', inject(function($timeout) {
-      compileInput('<input type="checkbox" ng-model="checkbox" '+
-        'ng-model-options="{ '+
-          'updateOn: \'default blur\', debounce: { default: 10000, blur: 0 } }"'+
+      compileInput('<input type="checkbox" ng-model="checkbox" ' +
+        'ng-model-options="{ ' +
+          'updateOn: \'default blur\', debounce: { default: 10000, blur: 0 } }"' +
         '/>');
 
       inputElm[0].checked = false;
@@ -1814,9 +1975,9 @@ describe('input', function() {
 
     it('should inherit model update settings from ancestor elements', inject(function($timeout) {
       var doc = $compile(
-          '<form name="test" '+
+          '<form name="test" ' +
               'ng-model-options="{ debounce: 10000, updateOn: \'blur\' }" >' +
-            '<input type="text" ng-model="name" name="alias" />'+
+            '<input type="text" ng-model="name" name="alias" />' +
           '</form>')(scope);
       scope.$digest();
 
@@ -1834,7 +1995,7 @@ describe('input', function() {
 
     it('should flush debounced events when calling $commitViewValue directly', function() {
       compileInput(
-        '<input type="text" ng-model="name" name="alias" '+
+        '<input type="text" ng-model="name" name="alias" ' +
           'ng-model-options="{ debounce: 1000 }" />');
 
       changeInputValueTo('a');
@@ -1845,7 +2006,7 @@ describe('input', function() {
 
     it('should cancel debounced events when calling $commitViewValue', inject(function($timeout) {
       compileInput(
-        '<input type="text" ng-model="name" name="alias" '+
+        '<input type="text" ng-model="name" name="alias" ' +
           'ng-model-options="{ debounce: 1000 }"/>');
 
       changeInputValueTo('a');
@@ -1859,7 +2020,7 @@ describe('input', function() {
 
     it('should reset input val if rollbackViewValue called during pending update', function() {
       compileInput(
-        '<input type="text" ng-model="name" name="alias" '+
+        '<input type="text" ng-model="name" name="alias" ' +
           'ng-model-options="{ updateOn: \'blur\' }" />');
 
       changeInputValueTo('a');
@@ -1872,7 +2033,7 @@ describe('input', function() {
 
     it('should allow canceling pending updates', inject(function($timeout) {
       compileInput(
-        '<input type="text" ng-model="name" name="alias" '+
+        '<input type="text" ng-model="name" name="alias" ' +
           'ng-model-options="{ updateOn: \'blur\' }" />');
 
       changeInputValueTo('a');
@@ -1885,7 +2046,7 @@ describe('input', function() {
 
     it('should allow canceling debounced updates', inject(function($timeout) {
       compileInput(
-        '<input type="text" ng-model="name" name="alias" '+
+        '<input type="text" ng-model="name" name="alias" ' +
           'ng-model-options="{ debounce: 10000 }" />');
 
       changeInputValueTo('a');
@@ -1899,7 +2060,7 @@ describe('input', function() {
 
     it('should handle model updates correctly even if rollbackViewValue is not invoked', function() {
       compileInput(
-        '<input type="text" ng-model="name" name="alias" '+
+        '<input type="text" ng-model="name" name="alias" ' +
           'ng-model-options="{ updateOn: \'blur\' }" />');
 
       changeInputValueTo('a');
@@ -1910,7 +2071,7 @@ describe('input', function() {
 
     it('should reset input val if rollbackViewValue called during debounce', inject(function($timeout) {
       compileInput(
-        '<input type="text" ng-model="name" name="alias" '+
+        '<input type="text" ng-model="name" name="alias" ' +
           'ng-model-options="{ debounce: 2000 }" />');
 
       changeInputValueTo('a');
@@ -1923,7 +2084,7 @@ describe('input', function() {
 
     it('should not try to invoke a model if getterSetter is false', function() {
       compileInput(
-        '<input type="text" ng-model="name" '+
+        '<input type="text" ng-model="name" ' +
           'ng-model-options="{ getterSetter: false }" />');
 
       var spy = scope.name = jasmine.createSpy('setterSpy');
@@ -1943,7 +2104,7 @@ describe('input', function() {
 
     it('should always try to invoke a model if getterSetter is true', function() {
       compileInput(
-        '<input type="text" ng-model="name" '+
+        '<input type="text" ng-model="name" ' +
           'ng-model-options="{ getterSetter: true }" />');
 
       var spy = scope.name = jasmine.createSpy('setterSpy').andCallFake(function() {
@@ -1971,7 +2132,7 @@ describe('input', function() {
 
     it('should not fail on non-assignable model binding if getterSetter is true', function() {
       compileInput(
-        '<input type="text" ng-model="accessor(user, \'name\')" '+
+        '<input type="text" ng-model="accessor(user, \'name\')" ' +
           'ng-model-options="{ getterSetter: true }" />');
     });
 
@@ -2224,6 +2385,53 @@ describe('input', function() {
         });
       }).toThrowMatching(/^\[ngPattern:noregexp\] Expected fooRegexp to be a RegExp but was/);
     });
+
+    it('should be invalid if entire string does not match pattern', function() {
+      compileInput('<input type="text" name="test" ng-model="value" pattern="\\d{4}">');
+      changeInputValueTo('1234');
+      expect(scope.form.test.$error.pattern).not.toBe(true);
+      expect(inputElm).toBeValid();
+
+      changeInputValueTo('123');
+      expect(scope.form.test.$error.pattern).toBe(true);
+      expect(inputElm).not.toBeValid();
+
+      changeInputValueTo('12345');
+      expect(scope.form.test.$error.pattern).toBe(true);
+      expect(inputElm).not.toBeValid();
+    });
+
+
+    it('should be cope with patterns that start with ^', function() {
+      compileInput('<input type="text" name="test" ng-model="value" pattern="^\\d{4}">');
+      changeInputValueTo('1234');
+      expect(scope.form.test.$error.pattern).not.toBe(true);
+      expect(inputElm).toBeValid();
+
+      changeInputValueTo('123');
+      expect(scope.form.test.$error.pattern).toBe(true);
+      expect(inputElm).not.toBeValid();
+
+      changeInputValueTo('12345');
+      expect(scope.form.test.$error.pattern).toBe(true);
+      expect(inputElm).not.toBeValid();
+    });
+
+
+    it('should be cope with patterns that end with $', function() {
+      compileInput('<input type="text" name="test" ng-model="value" pattern="\\d{4}$">');
+      changeInputValueTo('1234');
+      expect(scope.form.test.$error.pattern).not.toBe(true);
+      expect(inputElm).toBeValid();
+
+      changeInputValueTo('123');
+      expect(scope.form.test.$error.pattern).toBe(true);
+      expect(inputElm).not.toBeValid();
+
+      changeInputValueTo('12345');
+      expect(scope.form.test.$error.pattern).toBe(true);
+      expect(inputElm).not.toBeValid();
+    });
   });
 
 
@@ -2264,6 +2472,14 @@ describe('input', function() {
       expect(inputElm).toBeValid();
       expect(scope.form.input.$error.minlength).not.toBe(true);
     });
+
+    it('should validate when the model is initalized as a number', function() {
+      scope.value = 12345;
+      compileInput('<input type="text" name="input" ng-model="value" minlength="3" />');
+      expect(scope.value).toBe(12345);
+      expect(scope.form.input.$error.minlength).toBeUndefined();
+    });
+
   });
 
 
@@ -2360,6 +2576,13 @@ describe('input', function() {
       scope.value = '12345';
       compileInput('<input type="text" name="input" ng-model="value" minlength="3" />');
       expect(scope.value).toBe('12345');
+    });
+
+    it('should validate when the model is initalized as a number', function() {
+      scope.value = 12345;
+      compileInput('<input type="text" name="input" ng-model="value" maxlength="10" />');
+      expect(scope.value).toBe(12345);
+      expect(scope.form.input.$error.maxlength).toBeUndefined();
     });
 
   });

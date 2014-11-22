@@ -1,3 +1,106 @@
+<a name="1.2.27"></a>
+# 1.2.27 prime-factorization (2014-11-20)
+
+
+## Bug Fixes
+
+- **$animate:** clear the GCS cache even when no animation is detected
+  ([f619d032](https://github.com/angular/angular.js/commit/f619d032c932752313c646b5295bad8a68ef3871),
+   [#8813](https://github.com/angular/angular.js/issues/8813))
+- **$browser:**
+  - Cache `location.href` only during page reload phase
+  ([434d7a09](https://github.com/angular/angular.js/commit/434d7a09039151c1e627ac156213905d06b7df10),
+   [#9235](https://github.com/angular/angular.js/issues/9235), [#9470](https://github.com/angular/angular.js/issues/9470))
+  - don’t use history api when only the hash changes
+  ([a6e6438d](https://github.com/angular/angular.js/commit/a6e6438dae1ed92b29608d0b8830b0a7fbb624ef),
+   [#9423](https://github.com/angular/angular.js/issues/9423), [#9424](https://github.com/angular/angular.js/issues/9424))
+  - handle async href on url change in <=IE9
+  ([fe7d9ded](https://github.com/angular/angular.js/commit/fe7d9dedaa5ec3b3f56d9eb9c513cf99e40121ce),
+   [#9235](https://github.com/angular/angular.js/issues/9235))
+- **$http:** add missing shortcut methods and missing docs
+  ([ec4fe1bc](https://github.com/angular/angular.js/commit/ec4fe1bcab6f981103a10f860a3a00122aa78607),
+   [#9180](https://github.com/angular/angular.js/issues/9180), [#9321](https://github.com/angular/angular.js/issues/9321))
+- **$location:**
+  - revert erroneous logic and backport refactorings from master
+  ([1ee9b4ef](https://github.com/angular/angular.js/commit/1ee9b4ef5e4a795061d3aa19adefdeb7e0209eeb),
+   [#8492](https://github.com/angular/angular.js/issues/8492))
+  - allow 0 in path() and hash()
+  ([f807d7ab](https://github.com/angular/angular.js/commit/f807d7ab4ebd18899154528ea9ed50d5bc25c57a))
+- **$parse:** add quick check for Function constructor in fast path
+  ([756640f5](https://github.com/angular/angular.js/commit/756640f5aa8f3fd0084bff50534e23976a6fff00))
+- **$parse, events:** prevent accidental misuse of properties on $event
+  ([4d0614fd](https://github.com/angular/angular.js/commit/4d0614fd0da12c5783dfb4956c330edac87e62fe),
+   [#9969](https://github.com/angular/angular.js/issues/9969))
+- **ngMock:** $httpBackend should match data containing Date objects correctly
+  ([1426b029](https://github.com/angular/angular.js/commit/1426b02980badfd322eb960d71bfb1a14d657847),
+   [#5127](https://github.com/angular/angular.js/issues/5127))
+- **orderBy:** sort by identity if no predicate is given
+  ([45b896a1](https://github.com/angular/angular.js/commit/45b896a16abbcbfcdfb9a95c2d10c76a805b57cc),
+   [#5847](https://github.com/angular/angular.js/issues/5847), [#4579](https://github.com/angular/angular.js/issues/4579), [#9403](https://github.com/angular/angular.js/issues/9403))
+- **select:** ensure the label attribute is updated in Internet Explorer
+  ([16833d0f](https://github.com/angular/angular.js/commit/16833d0fb6585117e9978d1accc3ade83e22e797),
+   [#9621](https://github.com/angular/angular.js/issues/9621), [#10042](https://github.com/angular/angular.js/issues/10042))
+
+
+## Performance Improvements
+
+- **orderBy:** copy array with slice instead of for loop
+  ([409bcb38](https://github.com/angular/angular.js/commit/409bcb3810a1622178268f7ff7f4130887a1a3dc),
+   [#9942](https://github.com/angular/angular.js/issues/9942))
+
+
+<a name="1.3.3"></a>
+# 1.3.3 undersea-arithmetic (2014-11-17)
+
+
+## Bug Fixes
+
+- **$http:** don't parse single space responses as JSON
+  ([6f19a6fd](https://github.com/angular/angular.js/commit/6f19a6fd33ab72d3908e3418fba47ee8e1598fa6),
+   [#9907](https://github.com/angular/angular.js/issues/9907))
+- **minErr:** stringify non-JSON compatible objects in error messages
+  ([cf43ccdf](https://github.com/angular/angular.js/commit/cf43ccdf9b8665a2fd5d6aa52f80cb2d7c9bb7e2),
+   [#10085](https://github.com/angular/angular.js/issues/10085))
+- **$rootScope:** handle cyclic references in scopes when creating error messages
+  ([e80053d9](https://github.com/angular/angular.js/commit/e80053d91fd7c722e092a23d326384de2e552eb6),
+   [#10085](https://github.com/angular/angular.js/issues/10085))
+- **ngRepeat:** support cyclic object references in error messages
+  ([fa12c3c8](https://github.com/angular/angular.js/commit/fa12c3c86af7965d1b9d9a5dd3434755e9e04635),
+   [#9838](https://github.com/angular/angular.js/issues/9838), [#10065](https://github.com/angular/angular.js/issues/10065), [#10085](https://github.com/angular/angular.js/issues/10085))
+- **ngMock:** call $interval callbacks even when invokeApply is false
+  ([d81ff888](https://github.com/angular/angular.js/commit/d81ff8885b77f70c6417d7be3124d86d07447375),
+   [#10032](https://github.com/angular/angular.js/issues/10032))
+- **ngPattern:** match behaviour of native HTML pattern attribute
+  ([85eb9660](https://github.com/angular/angular.js/commit/85eb9660ef67c24d5104a6a1921bedad0bd1b57e),
+   [#9881](https://github.com/angular/angular.js/issues/9881), [#9888](https://github.com/angular/angular.js/issues/9888))
+- **select:** ensure the label attribute is updated in Internet Explorer
+  ([6604c236](https://github.com/angular/angular.js/commit/6604c2361427fba8c43a39dc2e92197390dfbdbe),
+   [#9621](https://github.com/angular/angular.js/issues/9621), [#10042](https://github.com/angular/angular.js/issues/10042))
+
+
+## Features
+
+- **$location:** allow to location to be changed during $locationChangeStart
+  ([a9352c19](https://github.com/angular/angular.js/commit/a9352c19ce33f0393d6581547c7ea8dfc2a8b78f),
+   [#9607](https://github.com/angular/angular.js/issues/9607), [#9678](https://github.com/angular/angular.js/issues/9678))
+- **$routeProvider:** allow setting caseInsensitiveMatch on the provider
+  ([0db573b7](https://github.com/angular/angular.js/commit/0db573b7493f76abd94ff65ce660017d617e865b),
+   [#6477](https://github.com/angular/angular.js/issues/6477), [#9873](https://github.com/angular/angular.js/issues/9873))
+
+
+## Performance Improvements
+
+- **orderBy:** copy array with slice instead of for loop
+  ([8eabc546](https://github.com/angular/angular.js/commit/8eabc5463c795d87f37e5a9eacbbb14435024061),
+   [#9942](https://github.com/angular/angular.js/issues/9942))
+
+## Breaking Changes
+
+- **$parse:** due to [fbad2805](https://github.com/angular/angular.js/commit/fbad2805703569058a4a860747b0e2d8aee36bdf),
+    you can't use characters that have special meaning in AngularJS expressions (ex.: `.` or `-`)
+    as part of filter's name. Before this commit custom filters could contain special characters
+    (like a dot) in their name but this wasn't intentional.
+
 <a name="1.3.2"></a>
 # 1.3.2 cardiovasculatory-magnification (2014-11-07)
 
