@@ -98,6 +98,19 @@ describe('Filter: filter', function() {
   });
 
 
+  it('should support deep expression objects with multiple properties', function() {
+    var items = [{person: {name: 'Annet', email: 'annet@example.com'}},
+                 {person: {name: 'Billy', email: 'me@billy.com'}},
+                 {person: {name: 'Joan', email: 'joan@example.net'}},
+                 {person: {name: 'John', email: 'john@example.com'}},
+                 {person: {name: 'Rita', email: 'rita@example.com'}}];
+    var expr = {person: {name: 'Jo', email: '!example.com'}};
+
+    expect(filter(items, expr).length).toBe(1);
+    expect(filter(items, expr)).toEqual([items[2]]);
+  });
+
+
   it('should match any properties for given "$" property', function() {
     var items = [{first: 'tom', last: 'hevery'},
                  {first: 'adam', last: 'hevery', alias: 'tom', done: false},
@@ -107,6 +120,43 @@ describe('Filter: filter', function() {
     expect(filter(items, {$: false}).length).toBe(1);
     expect(filter(items, {$: 10}).length).toBe(0);
     expect(filter(items, {$: 'hevery'})[0]).toEqual(items[0]);
+  });
+
+
+  it('should match any properties in the nested object for given deep "$" property', function() {
+    var items = [{person: {name: 'Annet', email: 'annet@example.com'}},
+                 {person: {name: 'Billy', email: 'me@billy.com'}},
+                 {person: {name: 'Joan', email: 'joan@example.net'}},
+                 {person: {name: 'John', email: 'john@example.com'}},
+                 {person: {name: 'Rita', email: 'rita@example.com'}}];
+    var expr = {person: {$: 'net'}};
+
+    expect(filter(items, expr).length).toBe(2);
+    expect(filter(items, expr)).toEqual([items[0], items[2]]);
+  });
+
+
+  it('should respect the depth level of a "$" property', function() {
+    var items = [{person: {name: 'Annet', email: 'annet@example.com'}},
+                 {person: {name: 'Billy', email: 'me@billy.com'}},
+                 {person: {name: 'Joan', email: {home: 'me@joan.com', work: 'joan@example.net'}}}];
+    var expr = {person: {$: 'net'}};
+
+    expect(filter(items, expr).length).toBe(1);
+    expect(filter(items, expr)).toEqual([items[0]]);
+  });
+
+
+  it('should respect the nesting level of "$"', function() {
+    var items = [{supervisor: 'me', person: {name: 'Annet', email: 'annet@example.com'}},
+                 {supervisor: 'me', person: {name: 'Billy', email: 'me@billy.com'}},
+                 {supervisor: 'me', person: {name: 'Joan', email: 'joan@example.net'}},
+                 {supervisor: 'me', person: {name: 'John', email: 'john@example.com'}},
+                 {supervisor: 'me', person: {name: 'Rita', email: 'rita@example.com'}}];
+    var expr = {$: {$: 'me'}};
+
+    expect(filter(items, expr).length).toBe(1);
+    expect(filter(items, expr)).toEqual([items[1]]);
   });
 
 
@@ -129,7 +179,158 @@ describe('Filter: filter', function() {
     expect(filter(items, '!isk')[0]).toEqual(items[1]);
   });
 
+
+  it('should ignore function properties in items', function() {
+    // Own function properties
+    var items = [
+      {text: 'hello', func: noop},
+      {text: 'goodbye'},
+      {text: 'kittens'},
+      {text: 'puppies'}
+    ];
+    var expr = {text: 'hello'};
+
+    expect(filter(items, expr).length).toBe(1);
+    expect(filter(items, expr)[0]).toBe(items[0]);
+    expect(filter(items, expr, true).length).toBe(1);
+    expect(filter(items, expr, true)[0]).toBe(items[0]);
+
+    // Inherited function proprties
+    function Item(text) {
+        this.text = text;
+    }
+    Item.prototype.func = noop;
+
+    items = [
+      new Item('hello'),
+      new Item('goodbye'),
+      new Item('kittens'),
+      new Item('puppies')
+    ];
+
+    expect(filter(items, expr).length).toBe(1);
+    expect(filter(items, expr)[0]).toBe(items[0]);
+    expect(filter(items, expr, true).length).toBe(1);
+    expect(filter(items, expr, true)[0]).toBe(items[0]);
+  });
+
+
+  it('should ignore function properties in expression', function() {
+    // Own function properties
+    var items = [
+      {text: 'hello'},
+      {text: 'goodbye'},
+      {text: 'kittens'},
+      {text: 'puppies'}
+    ];
+    var expr = {text: 'hello', func: noop};
+
+    expect(filter(items, expr).length).toBe(1);
+    expect(filter(items, expr)[0]).toBe(items[0]);
+    expect(filter(items, expr, true).length).toBe(1);
+    expect(filter(items, expr, true)[0]).toBe(items[0]);
+
+    // Inherited function proprties
+    function Expr(text) {
+        this.text = text;
+    }
+    Expr.prototype.func = noop;
+
+    expr = new Expr('hello');
+
+    expect(filter(items, expr).length).toBe(1);
+    expect(filter(items, expr)[0]).toBe(items[0]);
+    expect(filter(items, expr, true).length).toBe(1);
+    expect(filter(items, expr, true)[0]).toBe(items[0]);
+  });
+
+
+  it('should consider inherited properties in items', function() {
+    function Item(text) {
+      this.text = text;
+    }
+    Item.prototype.doubleL = 'maybe';
+
+    var items = [
+      new Item('hello'),
+      new Item('goodbye'),
+      new Item('kittens'),
+      new Item('puppies')
+    ];
+    var expr = {text: 'hello', doubleL: 'perhaps'};
+
+    expect(filter(items, expr).length).toBe(0);
+    expect(filter(items, expr, true).length).toBe(0);
+
+    expr = {text: 'hello', doubleL: 'maybe'};
+
+    expect(filter(items, expr).length).toBe(1);
+    expect(filter(items, expr)[0]).toBe(items[0]);
+    expect(filter(items, expr, true).length).toBe(1);
+    expect(filter(items, expr, true)[0]).toBe(items[0]);
+  });
+
+
+  it('should consider inherited properties in expression', function() {
+    function Expr(text) {
+      this.text = text;
+    }
+    Expr.prototype.doubleL = true;
+
+    var items = [
+      {text: 'hello', doubleL: true},
+      {text: 'goodbye'},
+      {text: 'kittens'},
+      {text: 'puppies'}
+    ];
+    var expr = new Expr('e');
+
+    expect(filter(items, expr).length).toBe(1);
+    expect(filter(items, expr)[0]).toBe(items[0]);
+
+    expr = new Expr('hello');
+
+    expect(filter(items, expr, true).length).toBe(1);
+    expect(filter(items, expr)[0]).toBe(items[0]);
+  });
+
+
+  it('should not be affected by `Object.prototype` when using a string expression', function() {
+    Object.prototype.someProp = 'oo';
+
+    var items = [
+      createMap(),
+      createMap(),
+      createMap(),
+      createMap()
+    ];
+    items[0].someProp = 'hello';
+    items[1].someProp = 'goodbye';
+    items[2].someProp = 'kittens';
+    items[3].someProp = 'puppies';
+
+    // Affected by `Object.prototype`
+    expect(filter(items, {}).length).toBe(1);
+    expect(filter(items, {})[0]).toBe(items[1]);
+
+    expect(filter(items, {$: 'll'}).length).toBe(0);
+
+    // Not affected by `Object.prototype`
+    expect(filter(items, 'll').length).toBe(1);
+    expect(filter(items, 'll')[0]).toBe(items[0]);
+
+    delete Object.prototype.someProp;
+  });
+
+
   describe('should support comparator', function() {
+
+    it('not consider `object === "[object Object]"` in non-strict comparison', function() {
+      var items = [{test: {}}];
+      var expr = '[object';
+      expect(filter(items, expr).length).toBe(0);
+    });
+
 
     it('as equality when true', function() {
       var items = ['misko', 'adam', 'adamson'];
@@ -176,6 +377,47 @@ describe('Filter: filter', function() {
 
       expr = 10;
       expect(filter(items, expr, comparator)).toEqual([items[2], items[3]]);
+    });
+
+
+    it('and use it correctly with deep expression objects', function() {
+      var items = [
+        {id: 0, details: {email: 'admin@example.com', role: 'admin'}},
+        {id: 1, details: {email: 'user1@example.com', role: 'user'}},
+        {id: 2, details: {email: 'user2@example.com', role: 'user'}}
+      ];
+      var expr, comp;
+
+      expr = {details: {email: 'user@example.com', role: 'adm'}};
+      expect(filter(items, expr)).toEqual([]);
+
+      expr = {details: {email: 'admin@example.com', role: 'adm'}};
+      expect(filter(items, expr)).toEqual([items[0]]);
+
+      expr = {details: {email: 'admin@example.com', role: 'adm'}};
+      expect(filter(items, expr, true)).toEqual([]);
+
+      expr = {details: {email: 'admin@example.com', role: 'admin'}};
+      expect(filter(items, expr, true)).toEqual([items[0]]);
+
+      expr = {details: {email: 'user', role: 'us'}};
+      expect(filter(items, expr)).toEqual([items[1], items[2]]);
+
+      expr = {id: 0, details: {email: 'user', role: 'us'}};
+      expect(filter(items, expr)).toEqual([]);
+
+      expr = {id: 1, details: {email: 'user', role: 'us'}};
+      expect(filter(items, expr)).toEqual([items[1]]);
+
+      comp = function(actual, expected) {
+        return isString(actual) && isString(expected) && (actual.indexOf(expected) === 0);
+      };
+
+      expr = {details: {email: 'admin@example.com', role: 'min'}};
+      expect(filter(items, expr, comp)).toEqual([]);
+
+      expr = {details: {email: 'admin@example.com', role: 'adm'}};
+      expect(filter(items, expr, comp)).toEqual([items[0]]);
     });
   });
 });

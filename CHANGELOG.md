@@ -1,3 +1,218 @@
+<a name="1.3.6"></a>
+# 1.3.6 robofunky-danceblaster (2014-12-08)
+
+
+## Bug Fixes
+
+- **$browser:** prevent infinite digests when clearing the hash of a url
+  ([10ac5948](https://github.com/angular/angular.js/commit/10ac5948097e2c8eaead238603d29ee580dc8273),
+   [#9629](https://github.com/angular/angular.js/issues/9629), [#9635](https://github.com/angular/angular.js/issues/9635), [#10228](https://github.com/angular/angular.js/issues/10228), [#10308](https://github.com/angular/angular.js/issues/10308))
+- **$http:** preserve config object when resolving from cache
+  ([facfec98](https://github.com/angular/angular.js/commit/facfec98412c0bb8678d578bade05ffef06a9e84),
+   [#9004](https://github.com/angular/angular.js/issues/9004), [#9030](https://github.com/angular/angular.js/issues/9030))
+- **$location:**
+  - allow hash fragments with hashPrefix in hash-bang location urls
+  ([2dc34a96](https://github.com/angular/angular.js/commit/2dc34a969956eea680be4c8d9f800556d110996a),
+   [#9629](https://github.com/angular/angular.js/issues/9629), [#9635](https://github.com/angular/angular.js/issues/9635), [#10228](https://github.com/angular/angular.js/issues/10228), [#10308](https://github.com/angular/angular.js/issues/10308))
+  - strip off empty hash segments when comparing
+  ([e93710fe](https://github.com/angular/angular.js/commit/e93710fe0e4fb05ceee59a04f290692a5bec5d20),
+   [#9635](https://github.com/angular/angular.js/issues/9635))
+- **$parse:** 
+  - fix operators associativity
+  ([ed1243ff](https://github.com/angular/angular.js/commit/ed1243ffc7c2cb4bd5b4dece597597db8eb08e34))
+  - follow JavaScript context for unbound functions
+  ([429938da](https://github.com/angular/angular.js/commit/429938da1f45b8a649b8c77762fb0ae59b6d0cea))
+- **filterFilter:**
+  - don't match primitive sub-expressions against any prop
+  ([a75537d4](https://github.com/angular/angular.js/commit/a75537d461c92e3455e372ff5005bf0cad2d2e95))
+  - ignore function properties and account for inherited properties
+  ([5ced914c](https://github.com/angular/angular.js/commit/5ced914cc8625008e6249d5ac5942d5822287cc0),
+   [#9984](https://github.com/angular/angular.js/issues/9984))
+  - correctly handle deep expression objects
+  ([f7cf8460](https://github.com/angular/angular.js/commit/f7cf846045b1e2fb39c62e304c61b44d5c805e31),
+   [#7323](https://github.com/angular/angular.js/issues/7323), [#9698](https://github.com/angular/angular.js/issues/9698), [#9757](https://github.com/angular/angular.js/issues/9757))
+- **inputs:** ignoring input events in IE caused by placeholder changes or focus/blur on inputs with placeholders
+  ([55d9db56](https://github.com/angular/angular.js/commit/55d9db56a6f7d29b16f8393612648080c6d535d6),
+   [#9265](https://github.com/angular/angular.js/issues/9265))
+- **linky:** make urls starting with www. links, like markdown
+  ([915a891a](https://github.com/angular/angular.js/commit/915a891ad4cdcaa5e47e976db8f4d402d230be77),
+   [#10290](https://github.com/angular/angular.js/issues/10290))
+- **ngAnimate:** do not use jQuery class API
+  ([40a537c2](https://github.com/angular/angular.js/commit/40a537c25f70ad556a41bb2d00ea3e257410e9af),
+   [#10024](https://github.com/angular/angular.js/issues/10024), [#10329](https://github.com/angular/angular.js/issues/10329))
+- **ngMock:** allow numeric timeouts in $httpBackend mock
+  ([acb066e8](https://github.com/angular/angular.js/commit/acb066e84a10483e1025eed295352b66747dbb8a),
+   [#4891](https://github.com/angular/angular.js/issues/4891))
+- **ngModel:**
+  - always use the most recent viewValue for validation
+  ([2d6a0a1d](https://github.com/angular/angular.js/commit/2d6a0a1dc1e7125cab2e30244e35e97e11802843),
+   [#10126](https://github.com/angular/angular.js/issues/10126), [#10299](https://github.com/angular/angular.js/issues/10299))
+  - fixing many keys incorrectly marking inputs as dirty
+  ([d21dff21](https://github.com/angular/angular.js/commit/d21dff21ed8beb015ad911f11d57cceb56fc439f))
+- **ngSanitize:** exclude smart quotes at the end of the link
+  ([7c6be43e](https://github.com/angular/angular.js/commit/7c6be43e83590798cffef63d076fb79d5296fba2),
+   [#7307](https://github.com/angular/angular.js/issues/7307))
+- **numberFilter:** numbers rounding to zero shouldn't be negative
+  ([96c61fe7](https://github.com/angular/angular.js/commit/96c61fe756d7d3db011818bf0925e3d86ffff8ce),
+   [#10278](https://github.com/angular/angular.js/issues/10278))
+- **orderBy:**
+  - make object-to-primtiive behaviour work for objects with null prototype
+  ([3aa57528](https://github.com/angular/angular.js/commit/3aa5752894419b4638d5c934879258fa6a1c0d07))
+  - maintain order in array of objects when predicate is not provided
+  ([8bfeddb5](https://github.com/angular/angular.js/commit/8bfeddb5d671017f4a21b8b46334ac816710b143),
+   [#9566](https://github.com/angular/angular.js/issues/9566), [#9747](https://github.com/angular/angular.js/issues/9747), [#10311](https://github.com/angular/angular.js/issues/10311))
+
+
+## Features
+
+- **$$jqLite:** export jqLite as a private service
+  ([f2e7f875](https://github.com/angular/angular.js/commit/f2e7f875e2ad4b271c4e72ebd3860f905132eed9))
+- **$injector:** print caller name in "unknown provider" errors (when available)
+  ([013b522c](https://github.com/angular/angular.js/commit/013b522c9e690665aecb0e0f656e4557a673ec09),
+   [#8135](https://github.com/angular/angular.js/issues/8135), [#9721](https://github.com/angular/angular.js/issues/9721))
+- **jsonFilter:** add optional arg to define custom indentation
+  ([1191edba](https://github.com/angular/angular.js/commit/1191edba4eaa15f675fa4ed047949a150843971b),
+   [#9771](https://github.com/angular/angular.js/issues/9771))
+- **ngAria:** bind keypress on ng-click w/ option
+  ([5481e2cf](https://github.com/angular/angular.js/commit/5481e2cfcd4d136a1c7f45cd4ce0fa1a8a15074d),
+   [#10288](https://github.com/angular/angular.js/issues/10288))
+
+
+## Breaking Changes
+
+- **$location:** due to [2dc34a96](https://github.com/angular/angular.js/commit/2dc34a969956eea680be4c8d9f800556d110996a),
+ 
+
+We no longer throw an `ihshprfx` error if the URL after the base path
+contains only a hash fragment.  Previously, if the base URL was `http://abc.com/base/`
+and the hashPrefix is `!` then trying to parse `http://abc.com/base/#some-fragment`
+would have thrown an error. Now we simply assume it is a normal fragment and
+that the path is empty, resulting `$location.absUrl() === "http://abc.com/base/#!/#some-fragment"`.
+
+This should not break any applications, but you can no longer rely on receiving the
+`ihshprfx` error for paths that have the syntax above. It is actually more similar
+to what currently happens for invalid extra paths anyway:  If the base URL
+and hashPrfix are set up as above, then `http://abc.com/base/other/path` does not
+throw an error but just ignores the extra path: `http://abc.com/base`.
+
+
+<a name="1.3.5"></a>
+# 1.3.5 cybernetic-mercantilism (2014-12-01)
+
+
+## Bug Fixes
+
+- **$templateRequest:** propagate rejection reason when ignoreRequestError flag is set
+  ([f6458826](https://github.com/angular/angular.js/commit/f6458826ac974914597a10b0ffdeee3c5d2c62ef),
+   [#10266](https://github.com/angular/angular.js/issues/10266))
+- **$httpBackend:** allow canceling request with falsy timeoutId
+  ([719d5c5f](https://github.com/angular/angular.js/commit/719d5c5fa59ae1617691a0dca02da861fcf5f933),
+   [#10177](https://github.com/angular/angular.js/issues/10177))
+- **linky:** encode all double quotes when serializing email addresses
+  ([2ec8d1ff](https://github.com/angular/angular.js/commit/2ec8d1ffc04e06a39cb1b74a8d675da38e0a1c6b),
+   [#10090](https://github.com/angular/angular.js/issues/10090))
+- **ngMock:**
+  - annotate $RootScopeDecorator
+  ([9a83f9d2](https://github.com/angular/angular.js/commit/9a83f9d2fabe0a259c283b7f7cd935e4b36e2b5d),
+   [#10273](https://github.com/angular/angular.js/issues/10273), [#10275](https://github.com/angular/angular.js/issues/10275), [#10277](https://github.com/angular/angular.js/issues/10277))
+  - respond did not always take a statusText argument
+  ([08cd5c19](https://github.com/angular/angular.js/commit/08cd5c19c7a5116e7e74691391fc5e28bfae4521),
+   [#8270](https://github.com/angular/angular.js/issues/8270))
+- **select:**
+  - use strict compare when removing option from ctrl
+  ([9fa73cb4](https://github.com/angular/angular.js/commit/9fa73cb4e7190b4d00b65f2f8f9f7d37607308ba),
+   [#9714](https://github.com/angular/angular.js/issues/9714), [#10115](https://github.com/angular/angular.js/issues/10115), [#10203](https://github.com/angular/angular.js/issues/10203))
+  - fix several issues when moving options between groups
+  ([30694c80](https://github.com/angular/angular.js/commit/30694c802763d46d6787f7298f47dfef53ed4229),
+   [#10166](https://github.com/angular/angular.js/issues/10166))
+
+
+<a name="1.3.4"></a>
+# 1.3.4 highfalutin-petroglyph (2014-11-24)
+
+## Bug Fixes
+
+- **$browser:** allow chaining url() calls in setter mode
+  ([764fa869](https://github.com/angular/angular.js/commit/764fa869dd8809d494924c23f30ddaa4cac84249),
+   [#10157](https://github.com/angular/angular.js/issues/10157))
+- **$http:** return empty headers, ignore properties in Object prototype
+  ([637c020f](https://github.com/angular/angular.js/commit/637c020f828a7ceeaacf83bb1a54ed3092e6c273),
+   [#7779](https://github.com/angular/angular.js/issues/7779), [#10113](https://github.com/angular/angular.js/issues/10113), [#10091](https://github.com/angular/angular.js/issues/10091))
+- **$locale:** Allow currency filter to fall back to maxFrac from locale
+  ([6dbd606a](https://github.com/angular/angular.js/commit/6dbd606ad7b708d5886c0e7ffee20ae8f8719711),
+   [#10179](https://github.com/angular/angular.js/issues/10179))
+- **$location:** allow empty string URLs to reset path, search, and hash
+  ([7812dfce](https://github.com/angular/angular.js/commit/7812dfcee8ab98cbf38261f9948d9541656bf554),
+   [#10063](https://github.com/angular/angular.js/issues/10063), [#10064](https://github.com/angular/angular.js/issues/10064))
+- **$route:** fix redirection with optional/eager params
+  ([891acf4c](https://github.com/angular/angular.js/commit/891acf4c201823fd2c925ee321c70d06737d5944),
+   [#9819](https://github.com/angular/angular.js/issues/9819), [#9827](https://github.com/angular/angular.js/issues/9827))
+- **Angular:** properly get node name for svg element wrapper
+  ([09a98323](https://github.com/angular/angular.js/commit/09a9832358960c98392c9df1a9fd9592f59bc844),
+   [#10078](https://github.com/angular/angular.js/issues/10078), [#10172](https://github.com/angular/angular.js/issues/10172))
+- **NgModelController:** typo $rawModelValue -> $$rawModelValue
+  ([4f4ff5f3](https://github.com/angular/angular.js/commit/4f4ff5f31b82c6f7be409ea4edbad4c2913ac1f1))
+- **input:**
+  - set ngTrueValue on required checkbox
+  ([8692f87a](https://github.com/angular/angular.js/commit/8692f87a4689fa0dd3640f4dcab5c6b6f960489b),
+   [#5164](https://github.com/angular/angular.js/issues/5164))
+  - call $setTouched in blur asynchronously if necessary
+  ([eab27187](https://github.com/angular/angular.js/commit/eab271876cb87c1f5f6c6f29e814fb8fecad87ff),
+   [#8762](https://github.com/angular/angular.js/issues/8762), [#9808](https://github.com/angular/angular.js/issues/9808), [#10014](https://github.com/angular/angular.js/issues/10014))
+- **input[date]:** do not use `$isEmpty` to check the model validity
+  ([40406e2f](https://github.com/angular/angular.js/commit/40406e2f22713efbd37ef3eff408339727cb62d9))
+- **linky:** encode double quotes when serializing email addresses
+  ([8ee8ffeb](https://github.com/angular/angular.js/commit/8ee8ffeba0a5a133fa792745c1019d294ecfcef3),
+   [#8945](https://github.com/angular/angular.js/issues/8945), [#8964](https://github.com/angular/angular.js/issues/8964), [#5946](https://github.com/angular/angular.js/issues/5946), [#10090](https://github.com/angular/angular.js/issues/10090), [#9256](https://github.com/angular/angular.js/issues/9256))
+- **ngMaxlength:** ignore maxlength when not set to a non-negative integer
+  ([92f87b11](https://github.com/angular/angular.js/commit/92f87b114242b01876e1dc5c6fddd061352ecb2c),
+   [#9874](https://github.com/angular/angular.js/issues/9874))
+- **ngModel:** don't run parsers when executing $validate
+  ([e3764e30](https://github.com/angular/angular.js/commit/e3764e30a301ec6136c8e6b5493d39feb3cd1ecc))
+- **ngModelOptions:** preserve context of getter/setters
+  ([bb4d3b73](https://github.com/angular/angular.js/commit/bb4d3b73a1ccf3dee55b0c25baf031bae5cbb676),
+   [#9394](https://github.com/angular/angular.js/issues/9394), [#9865](https://github.com/angular/angular.js/issues/9865))
+
+
+## Features
+
+- **ngMaxlength:** add support for disabling max length limit
+  ([5c1fdff6](https://github.com/angular/angular.js/commit/5c1fdff691b9367d73f72f6a0298cb6a6e259f35),
+   [#9995](https://github.com/angular/angular.js/issues/9995))
+- **ngModelController:** add $setDirty method
+  ([e8941c0f](https://github.com/angular/angular.js/commit/e8941c0fe5217d2e705bad8253dc0162aff4c709),
+   [#10038](https://github.com/angular/angular.js/issues/10038), [#10049](https://github.com/angular/angular.js/issues/10049))
+- **ngPluralize:** add support for `count` to be a one-time expression
+  ([2b41a586](https://github.com/angular/angular.js/commit/2b41a5868aee79e3872ad92db66e30959207d98e),
+   [#10004](https://github.com/angular/angular.js/issues/10004))
+
+
+## Performance Improvements
+
+- use Object.create instead of creating temporary constructors
+  ([bf6a79c3](https://github.com/angular/angular.js/commit/bf6a79c3484f474c300b5442ae73483030ef5782),
+   [#10058](https://github.com/angular/angular.js/issues/10058))
+
+
+## Breaking Changes
+
+- **ngModelOptions:** due to [bb4d3b73](https://github.com/angular/angular.js/commit/bb4d3b73a1ccf3dee55b0c25baf031bae5cbb676),
+  previously, ngModel invoked getter/setters in the global context.
+
+For example:
+
+```js
+<input ng-model="model.value" ng-model-options="{ getterSetter: true }">
+```
+
+would previously invoke `model.value()` in the global context.
+
+Now, ngModel invokes `value` with `model` as the context.
+
+It's unlikely that real apps relied on this behavior. If they did they can use `.bind` to explicilty
+bind a getter/getter to the global context, or just reference globals normally without `this`.
+
+
 <a name="1.2.27"></a>
 # 1.2.27 prime-factorization (2014-11-20)
 
@@ -2680,6 +2895,16 @@ jQuery. We don't expect that app code actually depends on this accidental featur
 
 
 ## Breaking Changes
+
+- **$compile:** due to [2ee29c5d](https://github.com/angular/angular.js/commit/2ee29c5da81ffacdc1cabb438f5d125d5e116cb9),
+
+The isolated scope of a component directive no longer leaks into the template
+that contains the instance of the directive.  This means that you can no longer
+access the isolated scope from attributes on the element where the isolated
+directive is defined.
+
+See https://github.com/angular/angular.js/issues/10236 for an example.
+
 
 - **$resource:** due to [d3c50c84](https://github.com/angular/angular.js/commit/d3c50c845671f0f8bcc3f7842df9e2fb1d1b1c40),
 

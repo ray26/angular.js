@@ -304,6 +304,14 @@ describe('$location', function() {
       expect(url.hash()).toBe('');
     });
 
+    it('url() should change path when empty string specified', function() {
+      url.url('');
+
+      expect(url.path()).toBe('/');
+      expect(url.search()).toEqual({});
+      expect(url.hash()).toBe('');
+    });
+
 
     it('replace should set $$replace flag and return itself', function() {
       expect(url.$$replace).toBe(false);
@@ -546,10 +554,24 @@ describe('$location', function() {
     });
 
 
-    it('should throw error when invalid hashbang prefix given', function() {
-      expect(function() {
-        url.$$parse('http://www.server.org:1234/base#/path');
-      }).toThrowMinErr('$location', 'ihshprfx', 'Invalid url "http://www.server.org:1234/base#/path", missing hash prefix "#!".');
+    it('should insert default hashbang if a hash is given with no hashbang prefix', function() {
+
+      url.$$parse('http://www.server.org:1234/base#/path');
+      expect(url.absUrl()).toBe('http://www.server.org:1234/base#!#%2Fpath');
+      expect(url.hash()).toBe('/path');
+      expect(url.path()).toBe('');
+
+      url.$$parse('http://www.server.org:1234/base#');
+      expect(url.absUrl()).toBe('http://www.server.org:1234/base');
+      expect(url.hash()).toBe('');
+      expect(url.path()).toBe('');
+    });
+
+    it('should ignore extra path segments if no hashbang is given', function() {
+      url.$$parse('http://www.server.org:1234/base/extra/path');
+      expect(url.absUrl()).toBe('http://www.server.org:1234/base');
+      expect(url.path()).toBe('');
+      expect(url.hash()).toBe('');
     });
 
 
@@ -638,6 +660,18 @@ describe('$location', function() {
       $browser.$$baseHref = options.basePath;
     };
   }
+
+  describe('location watch', function() {
+    beforeEach(initService({supportHistory: true}));
+    beforeEach(inject(initBrowser({url:'http://new.com/a/b#'})));
+
+    it('should not update browser if only the empty hash fragment is cleared by updating the search', inject(function($rootScope, $browser, $location) {
+      $browser.url('http://new.com/a/b#');
+      var $browserUrl = spyOnlyCallsWithArgs($browser, 'url').andCallThrough();
+      $rootScope.$digest();
+      expect($browserUrl).not.toHaveBeenCalled();
+    }));
+  });
 
   describe('wiring', function() {
 
@@ -1224,7 +1258,7 @@ describe('$location', function() {
     });
 
 
-    it('should not rewrite full url links do different domain', function() {
+    it('should not rewrite full url links to different domain', function() {
       configureService({linkHref: 'http://www.dot.abc/a?b=c', html5Mode: true});
       inject(
         initBrowser(),
@@ -1290,7 +1324,7 @@ describe('$location', function() {
 
 
     it ('should not rewrite links when rewriting links is disabled', function() {
-      configureService('/a?b=c', true, true, '', 'some content', false);
+      configureService({linkHref: 'link?a#b', html5Mode: {enabled: true, rewriteLinks:false}, supportHist: true});
       inject(
         initBrowser(),
         initLocation(),

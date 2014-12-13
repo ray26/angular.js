@@ -1066,6 +1066,56 @@ describe('NgModelController', function() {
 
       dealoc(element);
     }));
+
+    it('should always use the most recent $viewValue for validation', function() {
+      ctrl.$parsers.push(function(value) {
+        if (value && value.substr(-1) === 'b') {
+          value = 'a';
+          ctrl.$setViewValue(value);
+          ctrl.$render();
+        }
+
+        return value;
+      });
+
+      ctrl.$validators.mock = function(modelValue) {
+        return true;
+      };
+
+      spyOn(ctrl.$validators, 'mock').andCallThrough();
+
+      ctrl.$setViewValue('ab');
+
+      expect(ctrl.$validators.mock).toHaveBeenCalledWith('a', 'a');
+      expect(ctrl.$validators.mock.calls.length).toEqual(2);
+    });
+
+    it('should validate even if the modelValue did not change', function() {
+      ctrl.$parsers.push(function(value) {
+        if (value && value.substr(-1) === 'b') {
+          value = 'a';
+        }
+
+        return value;
+      });
+
+      ctrl.$validators.mock = function(modelValue) {
+        return true;
+      };
+
+      spyOn(ctrl.$validators, 'mock').andCallThrough();
+
+      ctrl.$setViewValue('a');
+
+      expect(ctrl.$validators.mock).toHaveBeenCalledWith('a', 'a');
+      expect(ctrl.$validators.mock.calls.length).toEqual(1);
+
+      ctrl.$setViewValue('ab');
+
+      expect(ctrl.$validators.mock).toHaveBeenCalledWith('a', 'ab');
+      expect(ctrl.$validators.mock.calls.length).toEqual(2);
+    });
+
   });
 });
 
@@ -1549,22 +1599,170 @@ describe('input', function() {
     expect(scope.name).toEqual('caitp');
   });
 
-  it('should not dirty the model on an input event in response to a placeholder change', inject(function($sniffer) {
-    if (msie && $sniffer.hasEvent('input')) {
-      compileInput('<input type="text" ng-model="name" name="name" />');
-      inputElm.attr('placeholder', 'Test');
-      browserTrigger(inputElm, 'input');
+  describe("IE placeholder input events", function() {
+    //IE fires an input event whenever a placeholder visually changes, essentially treating it as a value
+    //Events:
+    //  placeholder attribute change: *input*
+    //  focus (which visually removes the placeholder value): focusin focus *input*
+    //  blur (which visually creates the placeholder value):  focusout *input* blur
+    //However none of these occur if the placeholder is not visible at the time of the event.
+    //These tests try simulate various scenerios which do/do-not fire the extra input event
 
+    it('should not dirty the model on an input event in response to a placeholder change', function() {
+      compileInput('<input type="text" placeholder="Test" attr-capture ng-model="unsetValue" name="name" />');
+      msie && browserTrigger(inputElm, 'input');
       expect(inputElm.attr('placeholder')).toBe('Test');
       expect(inputElm).toBePristine();
 
-      inputElm.attr('placeholder', 'Test Again');
-      browserTrigger(inputElm, 'input');
+      attrs.$set('placeholder', '');
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm.attr('placeholder')).toBe('');
+      expect(inputElm).toBePristine();
 
+      attrs.$set('placeholder', 'Test Again');
+      msie && browserTrigger(inputElm, 'input');
       expect(inputElm.attr('placeholder')).toBe('Test Again');
       expect(inputElm).toBePristine();
-    }
-  }));
+
+      attrs.$set('placeholder', undefined);
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm.attr('placeholder')).toBe(undefined);
+      expect(inputElm).toBePristine();
+
+      changeInputValueTo('foo');
+      expect(inputElm).toBeDirty();
+    });
+
+    it('should not dirty the model on an input event in response to a interpolated placeholder change', inject(function($rootScope) {
+      compileInput('<input type="text" placeholder="{{ph}}" ng-model="unsetValue" name="name" />');
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm).toBePristine();
+
+      $rootScope.ph = 1;
+      $rootScope.$digest();
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm).toBePristine();
+
+      $rootScope.ph = "";
+      $rootScope.$digest();
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm).toBePristine();
+
+      changeInputValueTo('foo');
+      expect(inputElm).toBeDirty();
+    }));
+
+    it('should dirty the model on an input event while in focus even if the placeholder changes', inject(function($rootScope) {
+      $rootScope.ph = 'Test';
+      compileInput('<input type="text" ng-attr-placeholder="{{ph}}" ng-model="unsetValue" name="name" />');
+      expect(inputElm).toBePristine();
+
+      browserTrigger(inputElm, 'focusin');
+      browserTrigger(inputElm, 'focus');
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm.attr('placeholder')).toBe('Test');
+      expect(inputElm).toBePristine();
+
+      $rootScope.ph = 'Test Again';
+      $rootScope.$digest();
+      expect(inputElm).toBePristine();
+
+      changeInputValueTo('foo');
+      expect(inputElm).toBeDirty();
+    }));
+
+    it('should not dirty the model on an input event in response to a ng-attr-placeholder change', inject(function($rootScope) {
+      compileInput('<input type="text" ng-attr-placeholder="{{ph}}" ng-model="unsetValue" name="name" />');
+      expect(inputElm).toBePristine();
+
+      $rootScope.ph = 1;
+      $rootScope.$digest();
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm).toBePristine();
+
+      $rootScope.ph = "";
+      $rootScope.$digest();
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm).toBePristine();
+
+      changeInputValueTo('foo');
+      expect(inputElm).toBeDirty();
+    }));
+
+    it('should not dirty the model on an input event in response to a focus', inject(function($sniffer) {
+      compileInput('<input type="text" placeholder="Test" ng-model="unsetValue" name="name" />');
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm.attr('placeholder')).toBe('Test');
+      expect(inputElm).toBePristine();
+
+      browserTrigger(inputElm, 'focusin');
+      browserTrigger(inputElm, 'focus');
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm.attr('placeholder')).toBe('Test');
+      expect(inputElm).toBePristine();
+
+      changeInputValueTo('foo');
+      expect(inputElm).toBeDirty();
+    }));
+
+    it('should not dirty the model on an input event in response to a blur', inject(function($sniffer) {
+      compileInput('<input type="text" placeholder="Test" ng-model="unsetValue" name="name" />');
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm.attr('placeholder')).toBe('Test');
+      expect(inputElm).toBePristine();
+
+      browserTrigger(inputElm, 'focusin');
+      browserTrigger(inputElm, 'focus');
+      msie && browserTrigger(inputElm, 'input');
+      expect(inputElm).toBePristine();
+
+      browserTrigger(inputElm, 'focusout');
+      msie && browserTrigger(inputElm, 'input');
+      browserTrigger(inputElm, 'blur');
+      expect(inputElm).toBePristine();
+
+      changeInputValueTo('foo');
+      expect(inputElm).toBeDirty();
+    }));
+
+    it('should dirty the model on an input event if there is a placeholder and value', inject(function($rootScope) {
+      $rootScope.name = 'foo';
+      compileInput('<input type="text" placeholder="Test" ng-model="name" value="init" name="name" />');
+      expect(inputElm.val()).toBe($rootScope.name);
+      expect(inputElm).toBePristine();
+
+      changeInputValueTo('bar');
+      expect(inputElm).toBeDirty();
+    }));
+
+    it('should dirty the model on an input event if there is a placeholder and value after focusing', inject(function($rootScope) {
+      $rootScope.name = 'foo';
+      compileInput('<input type="text" placeholder="Test" ng-model="name" value="init" name="name" />');
+      expect(inputElm.val()).toBe($rootScope.name);
+      expect(inputElm).toBePristine();
+
+      browserTrigger(inputElm, 'focusin');
+      browserTrigger(inputElm, 'focus');
+      changeInputValueTo('bar');
+      expect(inputElm).toBeDirty();
+    }));
+
+    it('should dirty the model on an input event if there is a placeholder and value after bluring', inject(function($rootScope) {
+      $rootScope.name = 'foo';
+      compileInput('<input type="text" placeholder="Test" ng-model="name" value="init" name="name" />');
+      expect(inputElm.val()).toBe($rootScope.name);
+      expect(inputElm).toBePristine();
+
+      browserTrigger(inputElm, 'focusin');
+      browserTrigger(inputElm, 'focus');
+      expect(inputElm).toBePristine();
+
+      browserTrigger(inputElm, 'focusout');
+      browserTrigger(inputElm, 'blur');
+      changeInputValueTo('bar');
+      expect(inputElm).toBeDirty();
+    }));
+  });
 
 
   it('should interpolate input names', function() {
@@ -1656,7 +1854,7 @@ describe('input', function() {
     }
   });
 
-  describe('"paste" and "cut" events', function() {
+  describe('"keydown", "paste" and "cut" events', function() {
     beforeEach(function() {
       // Force browser to report a lack of an 'input' event
       $sniffer.hasEvent = function(eventName) {
@@ -1664,8 +1862,12 @@ describe('input', function() {
       };
     });
 
-    it('should update the model on "paste" event', function() {
+    it('should update the model on "paste" event if the input value changes', function() {
       compileInput('<input type="text" ng-model="name" name="alias" ng-change="change()" />');
+
+      browserTrigger(inputElm, 'keydown');
+      $browser.defer.flush();
+      expect(inputElm).toBePristine();
 
       inputElm.val('mark');
       browserTrigger(inputElm, 'paste');
@@ -1682,6 +1884,21 @@ describe('input', function() {
       expect(scope.name).toEqual('john');
     });
 
+    it('should cancel the delayed dirty if a change occurs', function() {
+      compileInput('<input type="text" ng-model="name" />');
+      var ctrl = inputElm.controller('ngModel');
+
+      browserTrigger(inputElm, 'keydown', {target: inputElm[0]});
+      inputElm.val('f');
+      browserTrigger(inputElm, 'change');
+      expect(inputElm).toBeDirty();
+
+      ctrl.$setPristine();
+      scope.$apply();
+
+      $browser.defer.flush();
+      expect(inputElm).toBePristine();
+    });
   });
 
 
@@ -2102,7 +2319,7 @@ describe('input', function() {
       expect(inputElm.val()).toBe('a');
     });
 
-    it('should always try to invoke a model if getterSetter is true', function() {
+    it('should try to invoke a function model if getterSetter is true', function() {
       compileInput(
         '<input type="text" ng-model="name" ' +
           'ng-model-options="{ getterSetter: true }" />');
@@ -2117,6 +2334,12 @@ describe('input', function() {
       expect(inputElm.val()).toBe('b');
       expect(spy).toHaveBeenCalledWith('a');
       expect(scope.name).toBe(spy);
+    });
+
+    it('should assign to non-function models if getterSetter is true', function() {
+      compileInput(
+        '<input type="text" ng-model="name" ' +
+          'ng-model-options="{ getterSetter: true }" />');
 
       scope.name = 'c';
       changeInputValueTo('d');
@@ -2134,6 +2357,35 @@ describe('input', function() {
       compileInput(
         '<input type="text" ng-model="accessor(user, \'name\')" ' +
           'ng-model-options="{ getterSetter: true }" />');
+    });
+
+    it('should invoke a model in the correct context if getterSetter is true', function() {
+      compileInput(
+        '<input type="text" ng-model="someService.getterSetter" ' +
+          'ng-model-options="{ getterSetter: true }" />');
+
+      scope.someService = {
+        value: 'a',
+        getterSetter: function(newValue) {
+          this.value = newValue || this.value;
+          return this.value;
+        }
+      };
+      spyOn(scope.someService, 'getterSetter').andCallThrough();
+      scope.$apply();
+
+      expect(inputElm.val()).toBe('a');
+      expect(scope.someService.getterSetter).toHaveBeenCalledWith();
+      expect(scope.someService.value).toBe('a');
+
+      changeInputValueTo('b');
+      expect(scope.someService.getterSetter).toHaveBeenCalledWith('b');
+      expect(scope.someService.value).toBe('b');
+
+      scope.someService.value = 'c';
+      scope.$apply();
+      expect(inputElm.val()).toBe('c');
+      expect(scope.someService.getterSetter).toHaveBeenCalledWith();
     });
 
     it('should assign invalid values to the scope if allowInvalid is true', function() {
@@ -2252,6 +2504,22 @@ describe('input', function() {
     scope.$apply('value = 0');
 
     expect(inputElm.val()).toBe('0');
+  });
+
+
+  it('should render the $viewValue when $modelValue is empty', function() {
+    compileInput('<input type="text" ng-model="value" />');
+
+    var ctrl = inputElm.controller('ngModel');
+
+    ctrl.$modelValue = null;
+
+    expect(ctrl.$isEmpty(ctrl.$modelValue)).toBe(true);
+
+    ctrl.$viewValue = 'abc';
+    ctrl.$render();
+
+    expect(inputElm.val()).toBe('abc');
   });
 
 
@@ -2492,6 +2760,47 @@ describe('input', function() {
       expect(inputElm).toBeInvalid();
 
       changeInputValueTo('aaa');
+      expect(inputElm).toBeValid();
+    });
+
+    it('should only accept empty values when maxlength is 0', function() {
+      compileInput('<input type="text" ng-model="value" ng-maxlength="0" />');
+
+      changeInputValueTo('');
+      expect(inputElm).toBeValid();
+
+      changeInputValueTo('a');
+      expect(inputElm).toBeInvalid();
+    });
+
+    it('should accept values of any length when maxlength is negative', function() {
+      compileInput('<input type="text" ng-model="value" ng-maxlength="-1" />');
+
+      changeInputValueTo('');
+      expect(inputElm).toBeValid();
+
+      changeInputValueTo('aaaaaaaaaa');
+      expect(inputElm).toBeValid();
+    });
+
+    it('should accept values of any length when maxlength is non-numeric', function() {
+      compileInput('<input type="text" ng-model="value" ng-maxlength="{{maxlength}}" />');
+      changeInputValueTo('aaaaaaaaaa');
+
+      scope.$apply('maxlength = "5"');
+      expect(inputElm).toBeInvalid();
+
+      scope.$apply('maxlength = "abc"');
+      expect(inputElm).toBeValid();
+
+      scope.$apply('maxlength = ""');
+      expect(inputElm).toBeValid();
+
+      scope.$apply('maxlength = null');
+      expect(inputElm).toBeValid();
+
+      scope.someObj = {};
+      scope.$apply('maxlength = someObj');
       expect(inputElm).toBeValid();
     });
 

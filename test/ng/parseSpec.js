@@ -276,6 +276,10 @@ describe('parser', function() {
         expect(scope.$eval("2>=1")).toEqual(2 >= 1);
         expect(scope.$eval("true==2<3")).toEqual(true == 2 < 3);
         expect(scope.$eval("true===2<3")).toEqual(true === 2 < 3);
+
+        expect(scope.$eval("true===3===3")).toEqual(true === 3 === 3);
+        expect(scope.$eval("3===3===true")).toEqual(3 === 3 === true);
+        expect(scope.$eval("3 >= 3 > 2")).toEqual(3 >= 3 > 2);
       });
 
       it('should parse logical', function() {
@@ -508,10 +512,17 @@ describe('parser', function() {
       });
 
       it('should evaluate function call from a return value', function() {
-        scope.val = 33;
-        scope.getter = function() { return function() { return this.val; }; };
+        scope.getter = function() { return function() { return 33; }; };
         expect(scope.$eval("getter()()")).toBe(33);
       });
+
+      // There is no "strict mode" in IE9
+      if (!msie || msie > 9) {
+        it('should set no context to functions returned by other functions', function() {
+          scope.getter = function() { return function() { expect(this).toBeUndefined(); }; };
+          scope.$eval("getter()()");
+        });
+      }
 
       it('should evaluate multiplication and division', function() {
         scope.taxRate =  8;
@@ -696,6 +707,7 @@ describe('parser', function() {
           throw "IT SHOULD NOT HAVE RUN";
         };
         expect(scope.$eval('false && run()')).toBe(false);
+        expect(scope.$eval('false && true && run()')).toBe(false);
       });
 
       it('should short-circuit OR operator', function() {
@@ -703,6 +715,7 @@ describe('parser', function() {
           throw "IT SHOULD NOT HAVE RUN";
         };
         expect(scope.$eval('true || run()')).toBe(true);
+        expect(scope.$eval('true || false || run()')).toBe(true);
       });
 
 
