@@ -6,11 +6,12 @@
 Controls (`input`, `select`, `textarea`) are ways for a user to enter data.
 A Form is a collection of controls for the purpose of grouping related controls together.
 
-Form and controls provide validation services, so that the user can be notified of invalid input.
-This provides a better user experience, because the user gets instant feedback on how to
-correct the error. Keep in mind that while client-side validation plays an important role
-in providing good user experience, it can easily be circumvented and thus can not be trusted.
-Server-side validation is still necessary for a secure application.
+Form and controls provide validation services, so that the user can be notified of invalid input
+before submitting a form. This provides a better user experience than server-side validation alone
+because the user gets instant feedback on how to correct the error. Keep in mind that while
+client-side validation plays an important role in providing good user experience, it can easily
+be circumvented and thus can not be trusted. Server-side validation is still necessary for a
+secure application.
 
 
 # Simple form
@@ -131,7 +132,7 @@ A form is an instance of {@link form.FormController FormController}.
 The form instance can optionally be published into the scope using the `name` attribute.
 
 Similarly, an input control that has the {@link ng.directive:ngModel ngModel} directive holds an
-instance of {@link ngModel.NgModelController NgModelController}.Such a control instance
+instance of {@link ngModel.NgModelController NgModelController}. Such a control instance
 can be published as a property of the form instance using the `name` attribute on the input control.
 The name attribute specifies the name of the property on the form instance.
 
@@ -339,7 +340,7 @@ In the following example we create two directives:
       <div>
         Username:
         <input type="text" ng-model="name" name="name" username />{{name}}<br />
-        <span ng-show="form.name.$pending.username">Checking if this name is available ...</span>
+        <span ng-show="form.name.$pending.username">Checking if this name is available...</span>
         <span ng-show="form.name.$error.username">This username is already taken!</span>
       </div>
 

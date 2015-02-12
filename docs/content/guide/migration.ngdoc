@@ -15,13 +15,51 @@ which drives many of these changes.
 
 # Migrating from 1.2 to 1.3
 
+## Controllers
+
+Due to [3f2232b5](https://github.com/angular/angular.js/commit/3f2232b5a181512fac23775b1df4a6ebda67d018),
+`$controller` will no longer look for controllers on `window`.
+The old behavior of looking on `window` for controllers was originally intended
+for use in examples, demos, and toy apps. We found that allowing global controller
+functions encouraged poor practices, so we resolved to disable this behavior by
+default.
+
+To migrate, register your controllers with modules rather than exposing them
+as globals:
+
+Before:
+
+```javascript
+function MyController() {
+  // ...
+}
+```
+
+After:
+
+```javascript
+angular.module('myApp', []).controller('MyController', [function() {
+  // ...
+}]);
+```
+
+Although it's not recommended, you can re-enable the old behavior like this:
+
+```javascript
+angular.module('myModule').config(['$controllerProvider', function($controllerProvider) {
+  // this option might be handy for migrating old apps, but please don't use it
+  // in new ones!
+  $controllerProvider.allowGlobals();
+}]);
+```
+
 ## Angular Expression Parsing (`$parse` + `$interpolate`)
 
 - due to [77ada4c8](https://github.com/angular/angular.js/commit/77ada4c82d6b8fc6d977c26f3cdb48c2f5fbe5a5),
 
 You can no longer invoke .bind, .call or .apply on a function in angular expressions.
 This is to disallow changing the behaviour of existing functions
-in an unforseen fashion.
+in an unforeseen fashion.
 
   - due to [6081f207](https://github.com/angular/angular.js/commit/6081f20769e64a800ee8075c168412b21f026d99),
 
@@ -450,6 +488,45 @@ After:
 Please view the documentation for ngAnimate for more info.
 
 
+## Testing
+
+- due to [85880a64](https://github.com/angular/angular.js/commit/85880a64900fa22a61feb926bf52de0965332ca5), some deprecated features of
+Protractor tests no longer work.
+
+`by.binding(descriptor)` no longer allows using the surrounding interpolation
+markers in the descriptor (the default interpolation markers are `{{}}`).
+Previously, these were optional.
+
+Before:
+
+    var el = element(by.binding('{{foo}}'));
+
+After:
+
+    var el = element(by.binding('foo'));
+
+Prefixes `ng_` and `x-ng-` are no longer allowed for models. Use `ng-model`.
+
+`by.repeater` cannot find elements by row and column which are not children of
+the row. For example, if your template is
+
+    <div ng-repeat="foo in foos">{{foo.name}}</div>
+
+Before:
+
+    var el = element(by.repeater('foo in foos').row(2).column('foo.name'))
+
+After:
+
+You may either enclose `{{foo.name}}` in a child element
+
+    <div ng-repeat="foo in foos"><span>{{foo.name}}</span></div>
+
+or simply use:
+
+    var el = element(by.repeater('foo in foos').row(2))
+
+
 ## Internet Explorer 8
 
 - due to [eaa1d00b](https://github.com/angular/angular.js/commit/eaa1d00b24008f590b95ad099241b4003688cdda),
@@ -838,7 +915,7 @@ of `$sce.trustAsHtml(string)`. When bound to a plain string, the string is sanit
 module is not loaded) and the bound expression evaluates to a value that is not trusted an
 exception is thrown.
 
-When using this directive you can either include `ngSanitize` in your module's dependencis (See the
+When using this directive you can either include `ngSanitize` in your module's dependencies (See the
 example at the {@link ngBindHtml} reference) or use the {@link $sce} service to set the value as
 trusted.
 
@@ -1095,10 +1172,10 @@ freely available to JavaScript code (as before).
 
 Angular expressions execute in a limited context. They do not have
 direct access to the global scope, `window`, `document` or the Function
-constructor. However, they have direct access to names/properties on
-the scope chain. It has been a long standing best practice to keep
+constructor. However, they have direct access to names/properties on
+the scope chain. It has been a long standing best practice to keep
 sensitive APIs outside of the scope chain (in a closure or your
-controller.) That's easier said that done for two reasons:
+controller.) That's easier said than done for two reasons:
 
 1. JavaScript does not have a notion of private properties so if you need
 someone on the scope chain for JavaScript use, you also expose it to

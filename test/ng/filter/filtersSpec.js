@@ -150,10 +150,10 @@ describe('filters', function() {
       expect(number(Number.NaN)).toEqual('');
       expect(number({})).toEqual('');
       expect(number([])).toEqual('');
-      expect(number(+Infinity)).toEqual('');
-      expect(number(-Infinity)).toEqual('');
+      expect(number(+Infinity)).toEqual('∞');
+      expect(number(-Infinity)).toEqual('-∞');
       expect(number("1234.5678")).toEqual('1,234.568');
-      expect(number(1 / 0)).toEqual("");
+      expect(number(1 / 0)).toEqual('∞');
       expect(number(1,        2)).toEqual("1.00");
       expect(number(.1,       2)).toEqual("0.10");
       expect(number(.01,      2)).toEqual("0.01");
@@ -247,6 +247,11 @@ describe('filters', function() {
       expect(date('')).toEqual('');
     });
 
+    it('should ignore invalid dates', function() {
+      var invalidDate = new Date('abc');
+      expect(date(invalidDate)).toBe(invalidDate);
+    });
+
     it('should do basic filter', function() {
       expect(date(noon)).toEqual(date(noon, 'mediumDate'));
       expect(date(noon, '')).toEqual(date(noon, 'mediumDate'));
@@ -324,6 +329,36 @@ describe('filters', function() {
 
       expect(date(westOfUTCPartial, "yyyy-MM-ddTHH:mm:ssZ")).
                     toEqual('2010-09-03T06:35:08-0530');
+    });
+
+    it('should correctly calculate week number', function() {
+      function formatWeek(dateToFormat) {
+        return date(new angular.mock.TzDate(+5, dateToFormat + 'T12:00:00.000Z'), 'ww (EEE)');
+      }
+
+      expect(formatWeek('2007-01-01')).toEqual('01 (Mon)');
+      expect(formatWeek('2007-12-31')).toEqual('53 (Mon)');
+
+      expect(formatWeek('2008-01-01')).toEqual('01 (Tue)');
+      expect(formatWeek('2008-12-31')).toEqual('53 (Wed)');
+
+      expect(formatWeek('2014-01-01')).toEqual('01 (Wed)');
+      expect(formatWeek('2014-12-31')).toEqual('53 (Wed)');
+
+      expect(formatWeek('2009-01-01')).toEqual('01 (Thu)');
+      expect(formatWeek('2009-12-31')).toEqual('53 (Thu)');
+
+      expect(formatWeek('2010-01-01')).toEqual('00 (Fri)');
+      expect(formatWeek('2010-12-31')).toEqual('52 (Fri)');
+
+      expect(formatWeek('2011-01-01')).toEqual('00 (Sat)');
+      expect(formatWeek('2011-01-02')).toEqual('01 (Sun)');
+      expect(formatWeek('2011-01-03')).toEqual('01 (Mon)');
+      expect(formatWeek('2011-12-31')).toEqual('52 (Sat)');
+
+      expect(formatWeek('2012-01-01')).toEqual('01 (Sun)');
+      expect(formatWeek('2012-01-02')).toEqual('01 (Mon)');
+      expect(formatWeek('2012-12-31')).toEqual('53 (Mon)');
     });
 
     it('should treat single quoted strings as string literals', function() {
@@ -421,6 +456,16 @@ describe('filters', function() {
     it('should use UTC if the timezone is set to "UTC"', function() {
       expect(date(new Date(2003, 8, 10, 3, 2, 4), 'yyyy-MM-dd HH-mm-ss')).toEqual('2003-09-10 03-02-04');
       expect(date(new Date(Date.UTC(2003, 8, 10, 3, 2, 4)), 'yyyy-MM-dd HH-mm-ss', 'UTC')).toEqual('2003-09-10 03-02-04');
+      expect(date(new Date(Date.UTC(2003, 8, 10, 3, 2, 4)), 'yyyy-MM-dd HH-mm-ssZ', 'UTC')).toEqual('2003-09-10 03-02-04+0000');
+    });
+
+    it('should support conversion to any timezone', function() {
+      expect(date(new Date(Date.UTC(2003, 8, 10, 3, 2, 4)), 'yyyy-MM-dd HH-mm-ssZ', 'GMT+0500')).toEqual('2003-09-10 08-02-04+0500');
+    });
+
+    it('should fallback to default timezone in case an unknown timezone was passed', function() {
+      var value = new angular.mock.TzDate(-2, '2003-09-10T01:02:04.000Z');
+      expect(date(value, 'yyyy-MM-dd HH-mm-ssZ', 'WTF')).toEqual('2003-09-10 03-02-04+0200');
     });
   });
 });
